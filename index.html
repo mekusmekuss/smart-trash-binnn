@@ -1,83 +1,607 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>Smart Garbage Bottle Counter</title>
+<title>Smart Trash Bin — Counter & Coupons (Single File)</title>
+
+<!-- QR lib -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+
 <style>
-  body{margin:0;font-family:Arial,sans-serif;background:#111;color:#fff;text-align:center;padding:20px;}
-  h2{margin-bottom:10px;}
-  #video{width:260px;height:420px;background:#000;border:2px solid #fff;border-radius:12px;object-fit:cover;margin:0 auto 12px;display:block;}
-  #counter{display:inline-block;background:#fff;color:#000;padding:10px 16px;border-radius:10px;font-weight:700;margin-top:6px;}
-  #msg{margin-top:12px;min-height:44px;white-space:pre-line;line-height:1.3;}
-  #peso{margin-top:12px;font-size:22px;font-weight:bold;color:#00e676;}
-  .controls{margin-top:14px;display:flex;gap:10px;justify-content:center;flex-wrap:wrap;}
-  button{padding:10px 14px;font-size:15px;border-radius:8px;border:none;cursor:pointer;font-weight:600;}
-  .btn-claim{background:#00e676;color:#05221a;}
-  .btn-reset{background:#ff1744;color:white;}
+  :root{
+    --bg: #e9f0f6;
+    --card: #fff;
+    --muted:#5b6b78;
+    --accent: #0a4d7c;
+    --accent-2: #0b6ba7;
+    --danger: #d64545;
+    --glass: rgba(255,255,255,0.6);
+  }
+  [data-theme="dark"]{
+    --bg: #0f1720;
+    --card: #0b1220;
+    --muted: #aeb7c0;
+    --accent: #4fb3ff;
+    --accent-2: #2ea6ff;
+    --glass: rgba(255,255,255,0.03);
+  }
+  *{box-sizing:border-box}
+  html,body{height:100%;margin:0;font-family:Inter, system-ui, -apple-system, "Segoe UI", Roboto, Arial;}
+  body{background: linear-gradient(180deg,var(--bg), #f6fbff);color: #0d1720;padding:18px;}
+  .wrap{max-width:1100px;margin:8px auto;display:grid;grid-template-columns:560px 1fr;gap:18px;align-items:start;}
+  @media (max-width:980px){.wrap{grid-template-columns:1fr;padding:0 12px}}
+  header{grid-column:1/-1;display:flex;justify-content:space-between;align-items:center;margin-bottom:6px}
+  .brand{display:flex;gap:12px;align-items:center}
+  .logo{background:linear-gradient(135deg,var(--accent),var(--accent-2));width:48px;height:48px;border-radius:12px;color:white;display:flex;align-items:center;justify-content:center;font-weight:700}
+  h1{font-size:18px;margin:0}
+  .card{background:var(--card);border-radius:12px;padding:14px;box-shadow:0 8px 26px rgba(2,6,23,0.06);border:1px solid rgba(0,0,0,0.04)}
+  /* left column (camera) */
+  #cameraCard{display:flex;flex-direction:column;gap:10px;align-items:center}
+  video#video{width:520px;height:360px;background:#000;border-radius:10px;object-fit:cover;border:2px solid rgba(0,0,0,0.06)}
+  .counter{display:flex;gap:12px;align-items:center;flex-wrap:wrap}
+  .counter .pill{background:linear-gradient(90deg,#fff,#f3f7fb);padding:10px 14px;border-radius:10px;font-weight:800;box-shadow:0 6px 18px rgba(2,6,23,0.04)}
+  #msg{min-height:38px;color:var(--muted)}
+  .controls{display:flex;gap:8px;flex-wrap:wrap}
+  button{padding:10px 12px;border-radius:8px;border:none;cursor:pointer;font-weight:700}
+  .btn-primary{background:linear-gradient(180deg,var(--accent),var(--accent-2));color:white}
+  .btn-danger{background:var(--danger);color:white}
+  .btn-muted{background:transparent;border:1px solid rgba(0,0,0,0.06)}
+  /* right column (form & coupons) */
+  .form-row{display:flex;gap:8px}
+  label{display:block;font-weight:700;margin-top:8px;font-size:13px}
+  input, select {width:100%;padding:8px;border-radius:8px;border:1px solid rgba(0,0,0,0.06);margin-top:6px}
+  #photoPreview{width:100%;max-height:240px;border-radius:8px;object-fit:cover;display:none;margin-top:8px}
+  .coupon-area{display:flex;flex-direction:column;gap:12px}
+  .coupon-card{padding:12px;border-radius:10px;background:linear-gradient(180deg,rgba(255,255,255,0.95),var(--glass));border:1px solid rgba(0,0,0,0.04)}
+  #qrcode{margin:10px auto}
+  .history{max-height:320px;overflow:auto;padding:6px;display:flex;flex-direction:column;gap:8px}
+  .history-item{display:flex;justify-content:space-between;align-items:center;padding:8px;border-radius:8px;border:1px solid rgba(0,0,0,0.04)}
+  .small{font-size:13px;color:var(--muted)}
+  .muted{font-size:13px;color:var(--muted);margin-top:6px}
+  .top-controls{display:flex;gap:8px;align-items:center}
+  .cooldown{font-size:13px;color:var(--muted)}
 </style>
 </head>
-<body>
-<h2>Smart Trash Bottle Counter ♻️</h2>
-<video id="video" autoplay playsinline muted></video>
-<div id="counter">Bottles: <span id="count">0</span></div>
-<div id="peso">₱0</div>
-<div id="msg">Initializing camera…</div>
-<div class="controls">
-  <button class="btn-claim" id="claimBtn">Show Peso 💰</button>
-  <button class="btn-reset" id="resetBtn">Reset</button>
+<body data-theme="light">
+<div class="wrap">
+
+  <header>
+    <div class="brand">
+      <div class="logo">♻️</div>
+      <div>
+        <h1>Smart Trash Bin — Counter & Coupons</h1>
+        <div class="small">Camera motion detector → bottle counting → generate QR coupon</div>
+      </div>
+    </div>
+
+    <div class="top-controls">
+      <button id="themeToggle" class="btn-muted">🌙 Dark</button>
+      <button id="firebaseToggle" class="btn-muted" title="Toggle Firebase (UI only)">☁️ Firebase (off)</button>
+    </div>
+  </header>
+
+  <!-- LEFT: Camera + Counter -->
+  <section class="card" id="cameraCard">
+    <div style="display:flex;justify-content:space-between;width:100%;align-items:center">
+      <strong>Camera — Motion Detector</strong>
+      <div class="cooldown" id="cdText">Ready</div>
+    </div>
+
+    <video id="video" autoplay playsinline muted></video>
+
+    <div class="counter" style="width:100%;justify-content:center">
+      <div class="pill">Bottles: <span id="count">0</span></div>
+      <div class="pill">Peso est.: <span id="peso">₱0</span></div>
+      <div class="pill small" id="detectionInfo">Idle</div>
+    </div>
+
+    <div id="msg" class="small">Initializing camera…</div>
+
+    <div class="controls" style="margin-top:8px">
+      <button id="autoCaptureToggle" class="btn-muted">🤖 Auto-capture on detection: OFF</button>
+      <button id="capturePhoto" class="btn-primary">📸 Capture Photo</button>
+      <button id="claimBtn" class="btn-primary">Show Peso</button>
+      <button id="resetBtn" class="btn-danger">Reset</button>
+    </div>
+  </section>
+
+  <!-- RIGHT: Form + QR + History -->
+  <aside>
+    <div class="card coupon-area">
+      <div class="coupon-card">
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <strong>Submit & Get Coupon</strong>
+          <small class="small">Ready</small>
+        </div>
+
+        <div style="margin-top:8px">
+          <label for="name">Your Name</label>
+          <input id="name" type="text" placeholder="Juan dela Cruz">
+
+          <label for="trashType">Type of Trash</label>
+          <select id="trashType">
+            <option>Plastic Bottle</option>
+            <option>Glass Bottle</option>
+            <option>Aluminum Can</option>
+            <option>Paper</option>
+            <option>Other</option>
+          </select>
+
+          <div class="form-row">
+            <div style="flex:1">
+              <label for="quantity">Quantity</label>
+              <input id="quantity" type="number" min="1" value="1">
+            </div>
+            <div style="width:120px">
+              <label for="pointsPer">Points / item</label>
+              <input id="pointsPer" type="number" min="1" value="5">
+            </div>
+          </div>
+
+          <label for="photo">Proof photo (optional)</label>
+          <input id="photo" type="file" accept="image/*" capture="environment">
+          <img id="photoPreview" alt="Proof preview">
+
+          <div style="display:flex;gap:8px;margin-top:10px">
+            <button id="submitBtn" class="btn-primary">Submit & Generate Coupon</button>
+            <button id="useCaptureBtn" class="btn-muted" title="Use latest captured camera photo">Use Last Capture</button>
+          </div>
+          <div class="muted">Tip: You can capture from camera then press "Use Last Capture".</div>
+        </div>
+      </div>
+
+      <div class="card" style="padding:12px">
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <strong>Coupon</strong>
+          <div style="display:flex;gap:8px">
+            <button id="copyLast" class="btn-muted">Copy</button>
+            <button id="downloadQRCode" class="btn-muted">Download QR</button>
+          </div>
+        </div>
+
+        <div class="coupon-card" style="margin-top:10px">
+          <div id="qrcode"></div>
+          <div id="couponDetails" class="small muted">No coupon yet. Submit the form to generate.</div>
+        </div>
+      </div>
+
+      <div class="card" style="padding:12px">
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <strong>History</strong>
+          <div style="display:flex;gap:8px">
+            <button id="exportCSV" class="btn-muted">⬇️ CSV</button>
+            <button id="clearAll" class="btn-danger">Clear</button>
+          </div>
+        </div>
+        <div class="history" id="historyList"></div>
+        <div class="muted">Note: Data saved locally. Toggle Firebase to enable cloud (paste config).</div>
+      </div>
+    </div>
+  </aside>
+
 </div>
 
 <script>
-let count=0,lastCountTime=0;
-const video=document.getElementById('video');
-const countDisplay=document.getElementById('count');
-const msg=document.getElementById('msg');
-const pesoDisplay=document.getElementById('peso');
+/* ---------------- Utilities ---------------- */
+function el(id){return document.getElementById(id)}
+function randCode(len=9){
+  const chars='ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  return Array.from({length:len},()=>chars[Math.floor(Math.random()*chars.length)]).join('');
+}
+function isoDateDaysFromNow(days){
+  const d=new Date(); d.setDate(d.getDate()+days); return d.toISOString().split('T')[0];
+}
+function saveLocal(arr){ localStorage.setItem('smartTrash_coupons', JSON.stringify(arr)); }
+function loadLocal(){ try { return JSON.parse(localStorage.getItem('smartTrash_coupons')||'[]'); } catch(e){ return []; } }
 
-function setMsg(text,color){msg.style.color=color||'#fff';msg.textContent=text;}
-function manualReset(){count=0;countDisplay.textContent=count;pesoDisplay.textContent='₱0';setMsg('Counter reset ✔','#64ffda');}
-function resetIfNoMotion(){clearTimeout(window.noMotionReset);window.noMotionReset=setTimeout(()=>{count=0;countDisplay.textContent=count;pesoDisplay.textContent='₱0';setMsg('No motion 5 mins → Auto reset','orange');},5*60*1000);}
-function detectMotion(){
-  const w=video.videoWidth,h=video.videoHeight;
-  if(!w||!h){requestAnimationFrame(detectMotion);return;}
-  const canvas=document.createElement('canvas');
-  canvas.width=Math.round(w/2);
-  canvas.height=Math.round(h/2);
-  const ctx=canvas.getContext('2d');
-  ctx.drawImage(video,0,0,canvas.width,canvas.height);
-  const cropX=Math.round(canvas.width*0.25);
-  const cropY=Math.round(canvas.height*0.35);
-  const cropW=Math.max(1,Math.round(canvas.width*0.5));
-  const cropH=Math.max(1,Math.round(canvas.height*0.3));
-  ctx.filter='blur(4px)';
-  const frame=ctx.getImageData(cropX,cropY,cropW,cropH);
-  ctx.filter='none';
-  if(!window.prevFrame){window.prevFrame=frame;resetIfNoMotion();requestAnimationFrame(detectMotion);return;}
-  const prev=window.prevFrame.data,curr=frame.data;
-  let motionScore=0;
-  for(let i=0;i<curr.length;i+=12){
-    const diff=Math.abs(curr[i]-prev[i])+Math.abs(curr[i+1]-prev[i+1])+Math.abs(curr[i+2]-prev[i+2]);
-    if(diff>85) motionScore++;
-  }
-  const now=Date.now();
-  if(motionScore>500&&now-lastCountTime>1200){count++;countDisplay.textContent=count;lastCountTime=now;setMsg('Bottle detected ✅','#00e676');resetIfNoMotion();}
-  window.prevFrame=frame;
-  requestAnimationFrame(detectMotion);
+/* ---------------- UI refs ---------------- */
+const video = el('video');
+const countEl = el('count');
+const pesoEl = el('peso');
+const msgEl = el('msg');
+const cdText = el('cdText');
+const detectionInfo = el('detectionInfo');
+
+const autoCaptureToggle = el('autoCaptureToggle');
+const capturePhotoBtn = el('capturePhoto');
+const claimBtn = el('claimBtn');
+const resetBtn = el('resetBtn');
+
+const photoInput = el('photo');
+const previewImg = el('photoPreview');
+const useCaptureBtn = el('useCaptureBtn');
+const submitBtn = el('submitBtn');
+
+const qrcodeContainer = el('qrcode');
+const couponDetails = el('couponDetails');
+const exportCSV = el('exportCSV');
+const clearAll = el('clearAll');
+const historyList = el('historyList');
+const copyLast = el('copyLast');
+const downloadQRCode = el('downloadQRCode');
+
+const themeToggle = el('themeToggle');
+const firebaseToggle = el('firebaseToggle');
+
+let FIREBASE_ENABLED = false;
+
+/* ---------------- Motion Detector & Counter ---------------- */
+let count = 0;
+let lastCountTime = 0;
+let lastFrame = 0;
+let prevFrame = null;
+let autoCapture = false;
+let lastCaptureDataUrl = '';
+let noMotionTimer = null;
+const COOLDOWN_MS = 1200;
+const FPS_INTERVAL = 80; // ~12-13 FPS
+const MOTION_THRESHOLD_PIXEL_DIFF = 140;   
+const MOTION_THRESHOLD_SCORE = 2200;  
+
+function setMsg(text, color){ msgEl.style.color = color||'var(--muted)'; msgEl.textContent = text; }
+function updatePeso(){ pesoEl.textContent = '₱' + count; }
+function manualReset(){ count = 0; lastCountTime = 0; countEl.textContent = count; updatePeso(); setMsg('Counter reset ✔', '#0a8'); }
+function resetIfNoMotion(){ clearTimeout(noMotionTimer); noMotionTimer = setTimeout(()=>{ setMsg('No motion — auto reset in effect', 'orange'); manualReset(); stopCamera(); }, 5*60*1000); }
+
+function handleBottleDetected(){
+  const now = Date.now();
+  if(now - lastCountTime < COOLDOWN_MS) return;
+  lastCountTime = now;
+  count++;
+  countEl.textContent = count;
+  updatePeso();
+  setMsg('Bottle detected ✅', '#00e676');
+  detectionInfo.textContent = 'Detected: ' + new Date().toLocaleTimeString();
+  // capture a snapshot if autoCapture is ON
+  if(autoCapture) captureSnapshot();
+  resetIfNoMotion();
+  // show cooldown text (handled by animation loop)
 }
 
-(async function startCamera(){
-  try{
-    const stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:'environment'}});
-    video.srcObject=stream;await video.play();setMsg('Camera started ✔','#64ffda');detectMotion();
-  }catch(err){setMsg('Camera failed. Allow permission!','orange');}
-})();
+function captureSnapshot(){
+  try {
+    const w = video.videoWidth, h = video.videoHeight;
+    if(!w||!h) return '';
+    const canvas = document.createElement('canvas');
+    // small resolution to save size
+    const scale = 0.6;
+    canvas.width = Math.round(w * scale);
+    canvas.height = Math.round(h * scale);
+    const ctx = canvas.getContext('2d');
+    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+    const data = canvas.toDataURL('image/jpeg', 0.7);
+    lastCaptureDataUrl = data;
+    previewImg.src = data;
+    previewImg.style.display = 'block';
+    return data;
+  } catch(e){
+    return '';
+  }
+}
 
-document.getElementById('claimBtn').addEventListener('click',()=>{
-  pesoDisplay.textContent='₱'+count;
-  setMsg('Peso calculated','#00e676');
+function detectMotion(timestamp){
+  requestAnimationFrame(detectMotion);
+  if(!video || video.readyState < 2) return;
+  if(timestamp - lastFrame < FPS_INTERVAL) return;
+  lastFrame = timestamp;
+
+  const w = video.videoWidth, h = video.videoHeight;
+  if(!w || !h) return;
+
+  const canvas = document.createElement('canvas');
+  canvas.width = Math.round(w/2);
+  canvas.height = Math.round(h/2);
+  const ctx = canvas.getContext('2d');
+  ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+  // crop central region where bottle likely appears
+  const cropX = Math.round(canvas.width * 0.25);
+  const cropY = Math.round(canvas.height * 0.2);
+  const cropW = Math.max(1, Math.round(canvas.width * 0.5));
+  const cropH = Math.max(1, Math.round(canvas.height * 0.5));
+
+  let frame;
+  try {
+    frame = ctx.getImageData(cropX, cropY, cropW, cropH);
+  } catch(e){
+    // security or not ready
+    return;
+  }
+
+  if(!prevFrame){ prevFrame = frame; resetIfNoMotion(); return; }
+
+  const prev = prevFrame.data;
+  const curr = frame.data;
+  let motionScore = 0;
+  for(let i=0;i<curr.length;i+=12){ // sample every 4th pixel (3 channels)
+    const diff = Math.abs(curr[i]-prev[i]) + Math.abs(curr[i+1]-prev[i+1]) + Math.abs(curr[i+2]-prev[i+2]);
+    if(diff > MOTION_THRESHOLD_PIXEL_DIFF) motionScore++;
+  }
+
+  // update cooldown indicator
+  const since = Date.now() - lastCountTime;
+  cdText.textContent = (since < COOLDOWN_MS) ? ('Cooldown ' + Math.ceil((COOLDOWN_MS - since)/100)/10 + 's') : 'Ready';
+
+  if(motionScore > MOTION_THRESHOLD_SCORE){
+    handleBottleDetected();
+    // subtle beep
+    playBeep();
+  }
+
+  prevFrame = frame;
+}
+
+/* ---------------- Camera control ---------------- */
+let streamRef = null;
+async function startCamera(){
+  try{
+    const s = await navigator.mediaDevices.getUserMedia({video:{facingMode:'environment', width:{ideal:1280}, height:{ideal:720}}, audio:false});
+    streamRef = s;
+    video.srcObject = s;
+    await video.play();
+    setMsg('Camera started ✔', '#0a8');
+    requestAnimationFrame(detectMotion);
+    resetIfNoMotion();
+  }catch(err){
+    setMsg('Camera failed — allow permission or try HTTPS', 'orange');
+  }
+}
+function stopCamera(){
+  try{
+    if(streamRef){ streamRef.getTracks().forEach(t=>t.stop()); streamRef = null; setMsg('Camera stopped', '#aab'); }
+  }catch(e){}
+}
+
+/* ---------------- audio feedback ---------------- */
+const audioCtx = (typeof AudioContext !== 'undefined') ? new AudioContext() : null;
+function playBeep(){
+  if(!audioCtx) return;
+  const o = audioCtx.createOscillator();
+  const g = audioCtx.createGain();
+  o.type = 'sine';
+  o.frequency.value = 860;
+  g.gain.value = 0.02;
+  o.connect(g); g.connect(audioCtx.destination);
+  o.start();
+  setTimeout(()=>{ o.stop(); }, 80);
+}
+
+/* ---------------- Form & Coupon logic ---------------- */
+function getRedeemURL(code){
+  // same page redeem handler using query params
+  const base = location.origin + location.pathname;
+  return base + '?redeem=1&code=' + encodeURIComponent(code);
+}
+
+function renderCouponUI(c){
+  couponDetails.innerHTML = `
+    <div style="display:flex;flex-direction:column;gap:6px">
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <strong>${c.rewardValue}</strong>
+        <small class="small">Expires ${c.expiry}</small>
+      </div>
+      <div class="small">Name: ${c.name}</div>
+      <div class="small">Type: ${c.trashType} · Qty: ${c.qty}</div>
+      <div style="margin-top:8px;"><button id="copyBtn" class="btn-muted">Copy code</button></div>
+    </div>
+  `;
+  qrcodeContainer.innerHTML = '';
+  new QRCode(qrcodeContainer, {text: c.payload, width:160, height:160});
+  el('copyBtn').addEventListener('click', ()=> {
+    navigator.clipboard?.writeText(c.id).then(()=> alert('Code copied!')).catch(()=>{});
+  });
+}
+
+// create coupon (from form or from counter)
+async function createCoupon({name, trashType, qty, pointsPer, photoData}){
+  const code = randCode(9);
+  const expiry = isoDateDaysFromNow(30);
+  const rewardValue = `${qty * pointsPer} eco points`;
+  const createdAt = new Date().toISOString();
+  const payload = getRedeemURL(code);
+
+  const coupon = { id: code, name, trashType, qty, pointsPer, rewardValue, expiry, createdAt, payload, photoData: photoData||'', redeemed:false };
+  const list = loadLocal();
+  list.unshift(coupon);
+  saveLocal(list);
+  renderCouponUI(coupon);
+  renderHistory();
+  return coupon;
+}
+
+/* ---------------- History ---------------- */
+function renderHistory(){
+  const arr = loadLocal();
+  historyList.innerHTML = '';
+  if(arr.length===0){ historyList.innerHTML = '<div class="small muted">No coupons yet.</div>'; return; }
+  arr.forEach((it,idx)=>{
+    const div = document.createElement('div');
+    div.className = 'history-item';
+    div.innerHTML = `
+      <div style="min-width:0">
+        <div style="font-weight:700">${it.name} <span style="font-weight:400;color:var(--muted)">· ${it.trashType}</span></div>
+        <div class="small">${it.id} · ${new Date(it.createdAt).toLocaleString()}</div>
+      </div>
+      <div style="display:flex;gap:6px">
+        <button class="btn-muted" data-idx="${idx}" data-act="view">View</button>
+        <button class="btn-muted" data-idx="${idx}" data-act="redeem">Redeem</button>
+        <button class="btn-danger" data-idx="${idx}" data-act="del">Delete</button>
+      </div>
+    `;
+    historyList.appendChild(div);
+  });
+
+  historyList.querySelectorAll('button').forEach(btn=>{
+    btn.addEventListener('click',(ev)=>{
+      const act = btn.getAttribute('data-act');
+      const idx = Number(btn.getAttribute('data-idx'));
+      const arr = loadLocal();
+      const item = arr[idx];
+      if(act==='view'){ renderCouponUI(item); qrcodeContainer.scrollIntoView({behavior:'smooth'}); }
+      else if(act==='del'){ if(!confirm('Delete this coupon?')) return; arr.splice(idx,1); saveLocal(arr); renderHistory(); }
+      else if(act==='redeem'){ // simulate opening redeem page via url params
+        const url = getRedeemURL(item.id);
+        // open in new tab
+        window.open(url, '_blank');
+      }
+    });
+  });
+}
+
+/* ---------------- Export / clear ---------------- */
+exportCSV.addEventListener('click', ()=>{
+  const arr = loadLocal();
+  if(!arr.length){ alert('No coupons to export'); return; }
+  const rows = [['code','name','trashType','qty','pointsPer','reward','expiry','createdAt']];
+  arr.forEach(r=> rows.push([r.id,r.name,r.trashType,r.qty,r.pointsPer,r.rewardValue,r.expiry,r.createdAt]));
+  const csv = rows.map(r=> r.map(cell=> `"${String(cell).replace(/"/g,'""')}"`).join(',')).join('\n');
+  const blob = new Blob([csv],{type:'text/csv'}); const url = URL.createObjectURL(blob);
+  const a = document.createElement('a'); a.href = url; a.download = 'smarttrash_coupons.csv'; a.click(); a.remove(); URL.revokeObjectURL(url);
 });
-document.getElementById('resetBtn').addEventListener('click',manualReset);
+clearAll.addEventListener('click', ()=>{
+  if(!confirm('Clear all local coupons?')) return;
+  localStorage.removeItem('smartTrash_coupons');
+  renderHistory();
+  qrcodeContainer.innerHTML=''; couponDetails.innerHTML='No coupon yet.';
+});
+
+/* ---------------- Photo input handlers ---------------- */
+photoInput.addEventListener('change', (e)=>{
+  const f = e.target.files && e.target.files[0];
+  if(!f){ previewImg.style.display = 'none'; previewImg.src = ''; return; }
+  const r = new FileReader();
+  r.onload = ()=>{ previewImg.src = r.result; previewImg.style.display='block'; lastCaptureDataUrl = r.result; }
+  r.readAsDataURL(f);
+});
+useCaptureBtn.addEventListener('click', ()=>{
+  if(!lastCaptureDataUrl){ alert('No capture available'); return; }
+  previewImg.src = lastCaptureDataUrl; previewImg.style.display='block';
+});
+
+/* ---------------- Submit button ---------------- */
+submitBtn.addEventListener('click', async ()=>{
+  const name = (el('name').value || 'Anonymous').trim();
+  const trashType = el('trashType').value;
+  const qty = Math.max(1, Number(el('quantity').value) || 1);
+  const pointsPer = Math.max(1, Number(el('pointsPer').value) || 5);
+  const photoData = previewImg.src || lastCaptureDataUrl || '';
+  const c = await createCoupon({name, trashType, qty, pointsPer, photoData});
+  // reset form lightly
+  el('quantity').value = 1;
+  previewImg.style.display = 'none';
+  alert('Coupon created: ' + c.id);
+});
+
+/* ---------------- Copy / download QR ---------------- */
+let lastGeneratedCoupon = null;
+copyLast.addEventListener('click', ()=>{
+  if(!lastGeneratedCoupon) return alert('No coupon yet');
+  navigator.clipboard?.writeText(lastGeneratedCoupon.id).then(()=> alert('Copied code'));
+});
+downloadQRCode.addEventListener('click', ()=>{
+  if(!lastGeneratedCoupon) return alert('No coupon yet');
+  // simple approach: draw QR canvas to link
+  const q = qrcodeContainer.querySelector('img') || qrcodeContainer.querySelector('canvas');
+  if(!q) return alert('No QR available to download');
+  if(q.tagName === 'IMG'){
+    const src = q.src;
+    const a = document.createElement('a'); a.href = src; a.download = 'qrcode.png'; a.click();
+  } else {
+    const data = q.toDataURL('image/png');
+    const a = document.createElement('a'); a.href = data; a.download = 'qrcode.png'; a.click();
+  }
+});
+
+/* ---------------- Auto-capture toggle / manual capture ---------------- */
+autoCaptureToggle.addEventListener('click', ()=>{
+  autoCapture = !autoCapture;
+  autoCaptureToggle.textContent = (autoCapture ? '🤖 Auto-capture on detection: ON' : '🤖 Auto-capture on detection: OFF');
+});
+capturePhotoBtn.addEventListener('click', ()=>{ captureSnapshot(); alert('Photo captured (preview shown)'); });
+
+/* ---------------- Counter controls ---------------- */
+claimBtn.addEventListener('click', ()=>{ pesoEl.textContent = '₱' + count; setMsg('Peso calculated','#0a8'); });
+resetBtn.addEventListener('click', manualReset);
+
+/* ---------------- Theme + Firebase UI toggle ---------------- */
+themeToggle.addEventListener('click', ()=>{
+  const cur = document.body.getAttribute('data-theme') || 'light';
+  const next = cur === 'light' ? 'dark' : 'light';
+  document.body.setAttribute('data-theme', next);
+  themeToggle.textContent = next === 'dark' ? '☀️ Light' : '🌙 Dark';
+});
+firebaseToggle.addEventListener('click', ()=>{
+  FIREBASE_ENABLED = !FIREBASE_ENABLED;
+  firebaseToggle.textContent = FIREBASE_ENABLED ? '☁️ Firebase (on)' : '☁️ Firebase (off)';
+  alert('Firebase toggle changed. To enable cloud, paste Firebase config in the code.');
+});
+
+/* ---------------- Render coupon when created to keep reference ---------------- */
+const origCreateCoupon = createCoupon;
+createCoupon = async (opts) => {
+  const c = await origCreateCoupon(opts);
+  lastGeneratedCoupon = c;
+  return c;
+};
+
+/* ---------------- Redeem page handler (same file) ---------------- */
+function getQueryParam(name){
+  const p = new URLSearchParams(location.search);
+  return p.get(name);
+}
+async function handleRedeemMode(){
+  const redeem = getQueryParam('redeem');
+  const code = getQueryParam('code');
+  if(!redeem) return;
+  // hide the main UI and show redeem-only view
+  document.body.innerHTML = '';
+  const html = `
+    <div style="min-height:100vh;display:flex;align-items:center;justify-content:center;padding:18px;background:var(--bg)">
+      <div style="max-width:720px;width:100%;background:var(--card);padding:18px;border-radius:12px;box-shadow:0 10px 30px rgba(2,6,23,0.08)">
+        <h2>Redeem Coupon</h2>
+        <div id="result" style="margin-top:12px;padding:12px;border-radius:8px;border:1px solid rgba(0,0,0,0.06)">Checking...</div>
+        <div style="margin-top:12px"><button id="backBtn" class="btn-muted">Back</button></div>
+      </div>
+    </div>
+  `;
+  document.write(html);
+  document.close();
+  const result = document.getElementById('result');
+  document.getElementById('backBtn').addEventListener('click', ()=> location.href = location.pathname);
+  const list = loadLocal();
+  const idx = list.findIndex(c=> c.id === code);
+  if(idx === -1){
+    result.innerHTML = `<div style="color:#b00"><strong>Coupon not found</strong><div class="small">This code wasn't found in local history. Use the same device that created it or enable Firebase for cross-device redemption.</div></div>`;
+    return;
+  }
+  const item = list[idx];
+  if(item.redeemed){
+    result.innerHTML = `<div style="color:#b00"><strong>Already redeemed</strong><div class="small">Redeemed on ${new Date(item.redeemedAt||item.createdAt).toLocaleString()}</div></div>`;
+    return;
+  }
+  item.redeemed = true;
+  item.redeemedAt = new Date().toISOString();
+  list[idx] = item; saveLocal(list);
+  result.innerHTML = `<div style="color:#0a8"><strong>✅ Coupon Valid</strong><div class="small">Name: ${item.name} · Reward: ${item.rewardValue}</div><div style="margin-top:8px">Redeemed successfully.</div></div>`;
+}
+
+/* ---------------- Init ---------------- */
+(async function init(){
+  // if redeem mode in URL, handle it and stop
+  if(getQueryParam('redeem')){ handleRedeemMode(); return; }
+
+  renderHistory();
+  await startCamera();
+  // keep an update loop to show cooldown nicely
+  (function cdLoop(){
+    try{
+      const since = Date.now() - lastCountTime;
+      cdText.textContent = (since < COOLDOWN_MS) ? ('Cooldown ' + Math.ceil((COOLDOWN_MS - since)/100)/10 + 's') : 'Ready';
+    }catch(e){}
+    requestAnimationFrame(cdLoop);
+  })();
+})();
 </script>
 </body>
 </html>
