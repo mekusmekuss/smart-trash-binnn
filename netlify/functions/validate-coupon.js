@@ -1,15 +1,32 @@
-exports.handler = async function (event, context) {
-  const coupons = {
-    "DISCOUNT10": 0.10,
-    "DISCOUNT20": 0.20
-  };
+const fs = require("fs");
+const path = require("path");
 
-  const { coupon } = JSON.parse(event.body);
+exports.handler = async (event) => {
+  try {
+    const filePath = path.join(__dirname, "coupons.json");
+    const raw = fs.readFileSync(filePath);
+    const data = JSON.parse(raw);
 
-  const discount = coupons[coupon.toUpperCase()] || 0;
+    const couponCode = event.queryStringParameters.code;
 
-  return {
-    statusCode: 200,
-    body: JSON.stringify({ discount })
-  };
+    const found = data.coupons.find(c => c.code === couponCode);
+
+    if (!found) {
+      return {
+        statusCode: 404,
+        body: JSON.stringify({ valid: false, message: "Coupon not found" })
+      };
+    }
+
+    return {
+      statusCode: 200,
+      body: JSON.stringify({ valid: true, reward: found.reward })
+    };
+
+  } catch (err) {
+    return {
+      statusCode: 500,
+      body: JSON.stringify({ error: err.message })
+    };
+  }
 };
