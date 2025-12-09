@@ -236,8 +236,8 @@ let lastCaptureDataUrl = '';
 let noMotionTimer = null;
 const COOLDOWN_MS = 1200;
 const FPS_INTERVAL = 80; // ~12-13 FPS
-const MOTION_THRESHOLD_PIXEL_DIFF = 85;
-const MOTION_THRESHOLD_SCORE = 500;
+const MOTION_THRESHOLD_PIXEL_DIFF = 140;   
+const MOTION_THRESHOLD_SCORE = 2200;  
 
 function setMsg(text, color){ msgEl.style.color = color||'var(--muted)'; msgEl.textContent = text; }
 function updatePeso(){ pesoEl.textContent = '₱' + count; }
