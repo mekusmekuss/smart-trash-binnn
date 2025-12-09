@@ -9,95 +9,72 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 
 <style>
-  :root{
-    --bg:#eef6fb; --card:#fff; --muted:#586b76; --accent:#0a4d7c; --accent2:#0b6ba7; --danger:#d64545;
-  }
-  [data-theme="dark"]{ --bg:#07101a; --card:#071620; --muted:#9fbfdc; --accent:#4fb3ff; --accent2:#2ea6ff; }
-  *{box-sizing:border-box}
-  html,body{height:100%;margin:0;font-family:Inter,system-ui,Arial;background:linear-gradient(180deg,var(--bg),#f6fbff);color:#072433;padding:18px}
-  .wrap{max-width:1100px;margin:8px auto;display:grid;grid-template-columns:560px 1fr;gap:18px}
-  @media (max-width:980px){.wrap{grid-template-columns:1fr;padding:0 12px}}
-  .card{background:var(--card);border-radius:12px;padding:14px;box-shadow:0 8px 26px rgba(2,6,23,0.06);border:1px solid rgba(0,0,0,0.04)}
-  header{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px}
-  .logo{width:44px;height:44px;border-radius:10px;background:linear-gradient(135deg,var(--accent),var(--accent2));color:white;display:flex;align-items:center;justify-content:center;font-weight:800}
-  h1{font-size:18px;margin:0}
-  /* camera column */
-  #video{width:520px;height:360px;background:#000;border-radius:10px;object-fit:cover;border:2px solid rgba(0,0,0,0.06)}
-  .counter{display:flex;gap:12px;align-items:center;flex-wrap:wrap;justify-content:center;margin-top:10px}
-  .pill{background:linear-gradient(90deg,#fff,#f7fbff);padding:10px 14px;border-radius:10px;font-weight:800}
-  #msg{min-height:36px;color:var(--muted);margin-top:8px}
-  .controls{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap;justify-content:center}
-  button{padding:9px 12px;border-radius:8px;border:none;cursor:pointer;font-weight:700}
-  .btn-primary{background:linear-gradient(180deg,var(--accent),var(--accent2));color:white}
+  :root{--bg:#eef6fb;--card:#fff;--muted:#5b6b78;--accent:#0a4d7c;--accent-2:#0b6ba7;--danger:#d64545}
+  body{margin:0;font-family:Inter,system-ui,Arial;background:linear-gradient(180deg,var(--bg),#f6fbff);color:#042233;padding:18px}
+  .wrap{max-width:1100px;margin:10px auto;display:grid;grid-template-columns:560px 1fr;gap:18px}
+  header{grid-column:1/-1;display:flex;justify-content:space-between;align-items:center}
+  .logo{width:44px;height:44px;border-radius:10px;background:linear-gradient(135deg,var(--accent),var(--accent-2));display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700}
+  .card{background:#fff;border-radius:12px;padding:14px;box-shadow:0 10px 30px rgba(2,6,23,.06)}
+  /* camera */
+  #video{width:520px;height:360px;background:#000;border-radius:10px;object-fit:cover;border:2px solid rgba(0,0,0,.04)}
+  .pill{background:linear-gradient(90deg,#fff,#f3f7fb);padding:10px 14px;border-radius:10px;font-weight:800}
+  .controls{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+  button{padding:10px 12px;border-radius:8px;border:none;cursor:pointer;font-weight:700}
+  .btn-primary{background:linear-gradient(180deg,var(--accent),var(--accent-2));color:white}
   .btn-muted{background:transparent;border:1px solid rgba(0,0,0,0.06)}
   .btn-danger{background:var(--danger);color:white}
-  /* right column */
-  label{display:block;font-weight:700;margin-top:10px}
-  input, select {width:100%;padding:8px;border-radius:8px;border:1px solid rgba(0,0,0,0.06);margin-top:6px}
-  #photoPreview{display:none}
-  #qrcode{margin:12px auto}
   .small{font-size:13px;color:var(--muted)}
-  .history{max-height:260px;overflow:auto;padding:6px;display:flex;flex-direction:column;gap:8px}
+  #qrcode{margin:8px auto}
+  .history{max-height:300px;overflow:auto;margin-top:8px;display:flex;flex-direction:column;gap:8px}
   .history-item{display:flex;justify-content:space-between;align-items:center;padding:8px;border-radius:8px;border:1px solid rgba(0,0,0,0.04)}
-  .muted{font-size:13px;color:var(--muted);margin-top:6px}
-  .cooldown{font-size:13px;color:var(--muted)}
-  /* small helpers */
-  .caption{font-size:12px;color:var(--muted);margin-top:6px}
-  code{background:#f7f9fb;padding:2px 6px;border-radius:6px;font-size:12px}
+  .muted{color:var(--muted);font-size:13px}
+  @media (max-width:980px){.wrap{grid-template-columns:1fr}}
 </style>
 </head>
 <body data-theme="light">
 <div class="wrap">
-  <header style="grid-column:1/-1;display:flex;align-items:center;justify-content:space-between">
+
+  <header>
     <div style="display:flex;gap:12px;align-items:center">
       <div class="logo">♻️</div>
       <div>
-        <h1>Smart Trash Bin — Counter & Coupons</h1>
-        <div class="small">Camera motion detector → auto-count → generate coupon</div>
+        <h2 style="margin:0">Smart Trash Bin</h2>
+        <div class="small">Motion detector → count bottles → generate coupon</div>
       </div>
     </div>
+
     <div style="display:flex;gap:8px;align-items:center">
-      <button id="themeToggle" class="btn-muted">🌙 Dark</button>
-      <button id="cloudToggle" class="btn-muted" title="Toggle cloud (requires config)">☁️ Cloud (off)</button>
+      <button id="themeToggle" class="btn-muted">🌙</button>
+      <button id="cloudToggle" class="btn-muted" title="Enable cloud saving (requires server endpoint)">☁️ Cloud (off)</button>
     </div>
   </header>
 
-  <!-- Camera column -->
-  <section class="card" style="display:flex;flex-direction:column;align-items:center;gap:10px">
-    <div style="width:100%;display:flex;justify-content:space-between;align-items:center">
+  <!-- LEFT: Camera & counter -->
+  <section class="card" id="cameraCard">
+    <div style="display:flex;justify-content:space-between;align-items:center">
       <strong>Camera — Motion Detector</strong>
-      <div class="cooldown" id="cdText">Ready</div>
+      <div id="cdText" class="small">Ready</div>
     </div>
 
     <video id="video" autoplay playsinline muted></video>
 
-    <div class="counter">
+    <div style="display:flex;gap:12px;align-items:center;margin-top:10px;flex-wrap:wrap;justify-content:center">
       <div class="pill">Bottles: <span id="count">0</span></div>
       <div class="pill">Peso est.: <span id="peso">₱0</span></div>
       <div class="pill small" id="detectionInfo">Idle</div>
     </div>
 
-    <div id="msg" class="small">Initializing camera…</div>
+    <div id="msg" class="small muted" style="margin-top:10px">Initializing camera…</div>
 
     <div class="controls">
-      <button id="autoCaptureToggle" class="btn-muted">🤖 Auto-capture: OFF</button>
-      <button id="generateCouponBtn" class="btn-primary">Generate Coupon (from count)</button>
+      <button id="autoCaptureToggle" class="btn-muted">Auto-capture: OFF</button>
+      <button id="capturePhoto" class="btn-primary">Capture</button>
+      <button id="generateCoupon" class="btn-primary">Generate Coupon</button>
       <button id="resetBtn" class="btn-danger">Reset</button>
-    </div>
-
-    <div class="caption">
-      Tip: Place the camera so bottles fall into the central lower area. Shadows may still trigger — adjust sensitivity in settings below.
-    </div>
-
-    <!-- quick sensitivity UI -->
-    <div style="width:100%;margin-top:8px;display:flex;gap:8px;align-items:center">
-      <label style="width:130px">Sensitivity</label>
-      <input id="sensitivity" type="range" min="1" max="6" value="3" step="1" />
-      <div class="small" id="sensitivityLabel">3 (default)</div>
     </div>
   </section>
 
-  <!-- Right column: coupon form & history -->
+  <!-- RIGHT: Coupon + history -->
   <aside>
     <div class="card">
       <div style="display:flex;justify-content:space-between;align-items:center">
@@ -108,502 +85,343 @@
         </div>
       </div>
 
-      <div class="coupon-card" style="margin-top:12px">
+      <div style="margin-top:10px" class="coupon-card">
         <div id="qrcode"></div>
-        <div id="couponDetails" class="small muted">No coupon yet. Generate from the left when ready.</div>
+        <div id="couponDetails" class="small muted">No coupon yet. Use "Generate Coupon".</div>
       </div>
-
-      <div style="margin-top:12px;display:flex;gap:8px;align-items:center">
-        <label style="margin:0">Redeem URL (preview)</label>
-        <input id="redeemPreview" style="flex:1" readonly />
-      </div>
-
-      <div style="margin-top:10px">
-        <button id="exportCSV" class="btn-muted">⬇️ Export CSV</button>
-        <button id="clearAll" class="btn-danger">Clear Local</button>
-      </div>
-
-      <div class="muted" style="margin-top:8px">Cloud sync: <code>coupons.json</code> in your repo. See top of file for how to configure cloud writes.</div>
     </div>
 
     <div class="card" style="margin-top:12px">
       <div style="display:flex;justify-content:space-between;align-items:center">
         <strong>History</strong>
-        <div class="small muted">Local</div>
+        <div style="display:flex;gap:8px">
+          <button id="exportCSV" class="btn-muted">⬇️ CSV</button>
+          <button id="clearAll" class="btn-danger">Clear</button>
+        </div>
       </div>
       <div class="history" id="historyList"></div>
+      <div class="muted" style="margin-top:8px">Local storage is used by default. Enable Cloud to push coupons to your private repo via a secure server endpoint.</div>
     </div>
   </aside>
 </div>
 
 <script>
-/* ------------------- CONFIG -------------------
-  To enable automatic GitHub cloud sync (so mobile phones can read the same coupons.json
-  file on your GitHub repository), fill the GITHUB_CONFIG object below.
-
-  SECURITY NOTE:
-  - If you put a personal access token (PAT) here, anyone who views this page will see it (unless you serve this file privately).
-    That's a security risk. Safer options:
-      1) keep token only on your laptop while generating coupons (use browser console to set window.GITHUB_CONFIG at runtime).
-      2) create a small server or GitHub Action that accepts signed requests (advanced).
-  - If you don't configure cloud, the app will work locally and create coupons.json in localStorage.
--------------------------------------------------*/
-
-const GITHUB_CONFIG = {
-  enabled: false,   // set to true after you fill the values below
-  owner: "mekusmekuss",          // your GitHub username (owner of the repo)
-  repo: "smart-trash-binnn",     // repo name
-  branch: "main",                // branch to use (e.g. "main")
-  path: "coupons.json",          // file path to store coupons
-  token: ""                      // personal access token (fine-grained with repo write) — DO NOT commit public tokens
-};
-
-/* If you want, you can toggle cloud on runtime from the browser console:
-   window.GITHUB_CONFIG.enabled = true;
-   window.GITHUB_CONFIG.token = "ghp_xxx..."
-   window.GITHUB_CONFIG.owner = "yourname"
-   window.GITHUB_CONFIG.repo = "smart-trash-binnn"
+/* ---------------- CONFIG ----------------
+  CLOUD_ENDPOINT: OPTIONAL secure server endpoint that accepts POST { coupons } and
+  writes to your GitHub repo using a server-side PAT stored as an env var.
+  Example: https://my-server.example.com/save-coupons
+  If you don't have a server, skip it — localStorage only still works.
 */
+let CLOUD_ENDPOINT = ""; // set this after deploying the serverless function (see instructions below)
 
-///////////////// end config ///////////////////////
-
-/* Utilities */
+/* ---------------- Utilities ---------------- */
 function el(id){return document.getElementById(id)}
 function randCode(len=9){
   const chars='ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
-  return Array.from({length:len}, ()=> chars[Math.floor(Math.random()*chars.length)]).join('');
+  return Array.from({length:len},()=>chars[Math.floor(Math.random()*chars.length)]).join('');
 }
-function isoDateDaysFromNow(days){ const d=new Date(); d.setDate(d.getDate()+days); return d.toISOString().split('T')[0]; }
-function base64Encode(str){ return btoa(unescape(encodeURIComponent(str))); }
-function base64Decode(b64){ return decodeURIComponent(escape(atob(b64))); }
-
-/* Local storage helpers */
-function loadLocal(){ try{ return JSON.parse(localStorage.getItem('smartTrash_coupons')||'[]') }catch(e){return []} }
+function isoDateDaysFromNow(days){
+  const d=new Date(); d.setDate(d.getDate()+days); return d.toISOString().split('T')[0];
+}
 function saveLocal(arr){ localStorage.setItem('smartTrash_coupons', JSON.stringify(arr)); }
+function loadLocal(){ try { return JSON.parse(localStorage.getItem('smartTrash_coupons')||'[]'); } catch(e){ return []; } }
 
-/* UI refs */
+/* ---------------- UI refs ---------------- */
 const video = el('video');
-const countEl = el('count'); const pesoEl = el('peso');
-const msgEl = el('msg'); const cdText = el('cdText'); const detectionInfo = el('detectionInfo');
-const autoCaptureToggle = el('autoCaptureToggle'); const generateCouponBtn = el('generateCouponBtn');
-const resetBtn = el('resetBtn'); const sensitivity = el('sensitivity'); const sensitivityLabel = el('sensitivityLabel');
-const qrcodeContainer = el('qrcode'); const couponDetails = el('couponDetails'); const redeemPreview = el('redeemPreview');
-const historyList = el('historyList'); const exportCSV = el('exportCSV'); const clearAll = el('clearAll');
-const copyLast = el('copyLast'); const downloadQRCode = el('downloadQRCode'); const cloudToggle = el('cloudToggle');
+const countEl = el('count'), pesoEl = el('peso'), msgEl = el('msg'), cdText = el('cdText'), detectionInfo = el('detectionInfo');
+const autoCaptureToggle = el('autoCaptureToggle'), capturePhotoBtn = el('capturePhoto');
+const generateCouponBtn = el('generateCoupon'), resetBtn = el('resetBtn');
+const qrcodeContainer = el('qrcode'), couponDetails = el('couponDetails');
+const historyList = el('historyList'), exportCSV = el('exportCSV'), clearAll = el('clearAll');
+const copyLast = el('copyLast'), downloadQRCode = el('downloadQRCode');
+const cloudToggle = el('cloudToggle'), themeToggle = el('themeToggle');
 
 let count = 0;
 let lastCountTime = 0;
-let prevGray = null;
-let prevCentroid = null;
+let prevFrame = null;
 let autoCapture = false;
 let lastGeneratedCoupon = null;
+const COOLDOWN_MS = 1200;
+const FPS_INTERVAL = 100; // ~10 fps
+const SAMPLE_STEP = 6;
+const Y_DIFF_THRESHOLD = 24;
+const MOTION_SCORE_THRESHOLD = 420;
+const MIN_AREA_PIXELS = 180;
+let prevGray = null, prevCentroid = null;
 let streamRef = null;
 
-/* Motion detection tuning (tied to sensitivity slider) */
-const COOLDOWN_MS = 1200;
-
-/* UI helpers */
-function setMsg(txt,color){ msgEl.style.color = color||''; msgEl.textContent = txt; }
-function updateCountUI(){ countEl.textContent = count; pesoEl.textContent = '₱' + (count*5); }
-function manualReset(){ count=0; lastCountTime=0; prevGray=null; prevCentroid=null; updateCountUI(); setMsg('Counter reset ✔','#0a8'); }
-
-/* CAMERA & DETECTION (shadow-resistant) */
-function getSensitivitySettings(){
-  // map slider (1..6) to thresholds (coarser => less sensitive)
-  const v = Number(sensitivity.value);
-  // lower diff threshold = more sensitive (detect small changes); higher sample step = less sensitive
-  const mapping = {
-    1: {step:4, diff:12, score:120, minArea:150}, // most sensitive
-    2: {step:5, diff:16, score:200, minArea:200},
-    3: {step:6, diff:22, score:420, minArea:300}, // default
-    4: {step:7, diff:30, score:900, minArea:500},
-    5: {step:8, diff:40, score:1400, minArea:800},
-    6: {step:10, diff:55, score:2200, minArea:1200} // least sensitive
-  };
-  return mapping[v] || mapping[3];
-}
-
+/* ---------------- Motion detection (shadow-resistant) ---------------- */
+function setMsg(t, c){ msgEl.textContent = t; if(c) msgEl.style.color = c; }
+function updatePeso(){ pesoEl.textContent = '₱' + count; }
+function manualReset(){ count = 0; lastCountTime = 0; countEl.textContent = count; updatePeso(); setMsg('Counter reset ✔','#0a8'); }
 function captureSnapshot(){
-  try{
-    const w=video.videoWidth, h=video.videoHeight;
-    if(!w||!h) return '';
-    const c=document.createElement('canvas');
-    const scale = 0.6;
-    c.width = Math.round(w*scale); c.height=Math.round(h*scale);
-    const ctx = c.getContext('2d'); ctx.drawImage(video,0,0,c.width,c.height);
-    const data = c.toDataURL('image/jpeg',0.75);
-    return data;
-  }catch(e){return ''}
+  try {
+    const w = video.videoWidth, h = video.videoHeight; if(!w||!h) return '';
+    const canvas = document.createElement('canvas'); canvas.width = Math.round(w*0.6); canvas.height = Math.round(h*0.6);
+    const ctx = canvas.getContext('2d'); ctx.drawImage(video,0,0,canvas.width,canvas.height);
+    return canvas.toDataURL('image/jpeg',0.75);
+  } catch(e){ return ''; }
 }
 
 function handleBottleDetected(){
-  const now = Date.now();
-  if(now - lastCountTime < COOLDOWN_MS) return;
-  lastCountTime = now;
-  count++;
-  updateCountUI();
-  setMsg('Bottle detected ✅','#00c06b');
-  detectionInfo.textContent = 'Detected at ' + new Date().toLocaleTimeString();
-  if(autoCapture){ captureSnapshot(); }
+  const now = Date.now(); if(now - lastCountTime < COOLDOWN_MS) return;
+  lastCountTime = now; count++; countEl.textContent = count; updatePeso(); setMsg('Bottle detected ✅','#00e676');
+  detectionInfo.textContent = 'Detected: ' + new Date().toLocaleTimeString();
+  if(autoCapture){ previewLastCapture(captureSnapshot()); }
 }
 
-let lastFrame = 0;
+function previewLastCapture(dataUrl){
+  // show a tiny visual feedback as blinking border on video (not storing image in UI to keep UI small)
+  if(!dataUrl) return;
+  video.style.outline = '4px solid rgba(10,141,141,0.18)';
+  setTimeout(()=> video.style.outline = '', 420);
+}
+
 function detectMotion(ts){
   requestAnimationFrame(detectMotion);
   if(!video || video.readyState < 2) return;
-  if(ts - lastFrame < 100) return; // throttle ~10fps adjustable
-  lastFrame = ts;
-  const w=video.videoWidth, h=video.videoHeight; if(!w||!h) return;
+  if(ts - (window._lastFrame||0) < FPS_INTERVAL) return;
+  window._lastFrame = ts;
 
-  // small canvas
+  const w = video.videoWidth, h = video.videoHeight; if(!w||!h) return;
   const canvas = document.createElement('canvas'); canvas.width = Math.round(w/2); canvas.height = Math.round(h/2);
   const ctx = canvas.getContext('2d'); ctx.drawImage(video,0,0,canvas.width,canvas.height);
 
-  // crop lower-central area
-  const cropX = Math.round(canvas.width*0.18);
-  const cropY = Math.round(canvas.height*0.25);
-  const cropW = Math.max(1, Math.round(canvas.width*0.64));
-  const cropH = Math.max(1, Math.round(canvas.height*0.55));
+  // crop lower-center region
+  const cropX = Math.round(canvas.width * 0.18);
+  const cropY = Math.round(canvas.height * 0.25);
+  const cropW = Math.max(1,Math.round(canvas.width*0.64));
+  const cropH = Math.max(1,Math.round(canvas.height*0.55));
   let frame;
-  try{ frame = ctx.getImageData(cropX,cropY,cropW,cropH); }catch(e){ return; }
+  try { frame = ctx.getImageData(cropX,cropY,cropW,cropH); } catch(e){ return; }
 
-  // compute luma
-  const data = frame.data; const width = cropW; const height = cropH;
+  const data = frame.data;
+  const width = cropW, height = cropH;
   const currGray = new Float32Array((data.length/4));
-  let pi=0;
+  let pi = 0;
   for(let i=0;i<data.length;i+=4){ currGray[pi++] = 0.299*data[i] + 0.587*data[i+1] + 0.114*data[i+2]; }
 
   if(!prevGray){ prevGray = currGray; prevCentroid = null; return; }
 
-  // sample according to sensitivity
-  const cfg = getSensitivitySettings();
-  const step = cfg.step, diffThr = cfg.diff, scoreThr = cfg.score, minArea = cfg.minArea;
-  let motionScore = 0, sumX=0, sumY=0, countSamples=0;
-  let minX=width, minY=height, maxX=0, maxY=0;
-
-  for(let y=0; y<height; y+=step){
-    for(let x=0; x<width; x+=step){
+  let motionScore = 0, sumX=0,sumY=0,countSamples=0,minX=width,minY=height,maxX=0,maxY=0;
+  const step = SAMPLE_STEP;
+  for(let y=0;y<height;y+=step){
+    for(let x=0;x<width;x+=step){
       const p = y*width + x;
-      const d = Math.abs(currGray[p] - prevGray[p]);
-      if(d > diffThr){
+      const diff = Math.abs(currGray[p] - prevGray[p]);
+      if(diff > Y_DIFF_THRESHOLD){
         motionScore++; sumX+=x; sumY+=y; countSamples++;
-        if(x<minX) minX=x; if(y<minY) minY=y; if(x>maxX) maxX=x; if(y>maxY) maxY=y;
+        if(x<minX)minX=x; if(y<minY)minY=y; if(x>maxX)maxX=x; if(y>maxY)maxY=y;
       }
     }
   }
 
-  const approxAreaPixels = countSamples * (step*step);
-  const centroid = countSamples ? {x: sumX/countSamples, y: sumY/countSamples} : null;
+  const approxArea = countSamples * (step*step);
+  let centroid = null;
+  if(countSamples>0) centroid = {x: sumX/countSamples, y: sumY/countSamples};
+
   let downward = true;
   if(prevCentroid && centroid){
-    downward = (centroid.y - prevCentroid.y) > 3; // require downward movement
+    downward = (centroid.y - prevCentroid.y) > 4; // needs to move downward
   }
 
-  cdText.textContent = (Date.now() - lastCountTime < COOLDOWN_MS) ? ('Cooldown') : 'Ready';
-  detectionInfo.textContent = `Score:${motionScore} Area:${approxAreaPixels} Y:${centroid?Math.round(centroid.y):'-'}`;
+  cdText.textContent = (Date.now() - lastCountTime < COOLDOWN_MS) ? 'Cooldown' : 'Ready';
+  detectionInfo.textContent = `Score:${motionScore} Area:${approxArea} Centroid:${centroid?Math.round(centroid.y):'-'}`;
 
-  if(motionScore >= scoreThr && approxAreaPixels >= minArea && downward){
+  if(motionScore >= MOTION_SCORE_THRESHOLD && approxArea >= MIN_AREA_PIXELS && downward){
     handleBottleDetected();
-    playBeep();
-    prevCentroid = centroid ? {x: centroid.x, y: centroid.y} : prevCentroid;
+    try{ playBeep(); }catch(e){}
+    prevCentroid = centroid || prevCentroid;
   } else {
-    // smooth centroid decay/track
+    // smooth centroid
     if(prevCentroid && centroid){
       prevCentroid.x = prevCentroid.x*0.6 + centroid.x*0.4;
       prevCentroid.y = prevCentroid.y*0.6 + centroid.y*0.4;
-    } else if(centroid && !prevCentroid){
-      prevCentroid = centroid;
-    }
+    } else if(centroid && !prevCentroid){ prevCentroid = centroid; }
   }
 
   prevGray = currGray;
 }
 
-/* camera start/stop */
+/* ---------------- camera ---------------- */
 async function startCamera(){
   try{
     const s = await navigator.mediaDevices.getUserMedia({video:{facingMode:'environment', width:{ideal:1280}, height:{ideal:720}}, audio:false});
-    streamRef = s; video.srcObject = s; await video.play();
-    setMsg('Camera started ✔','#0a8');
+    streamRef = s; video.srcObject = s; await video.play(); setMsg('Camera started ✔','#0a8');
     requestAnimationFrame(detectMotion);
   }catch(err){
-    setMsg('Camera failed — allow permission or use HTTPS','orange');
+    setMsg('Camera failed — allow permission or try HTTPS','orange');
   }
 }
-function stopCamera(){ try{ if(streamRef){ streamRef.getTracks().forEach(t=>t.stop()); streamRef=null; setMsg('Camera stopped','#aab'); } }catch(e){} }
+function stopCamera(){ try{ if(streamRef){ streamRef.getTracks().forEach(t=>t.stop()); streamRef=null; setMsg('Camera stopped','#aab'); }}catch(e){} }
 
-/* audio */
+/* ---------------- audio feedback ---------------- */
 const audioCtx = (typeof AudioContext !== 'undefined') ? new AudioContext() : null;
-function playBeep(){ if(!audioCtx) return; const o = audioCtx.createOscillator(); const g = audioCtx.createGain(); o.type='sine'; o.frequency.value=880; g.gain.value=0.02; o.connect(g); g.connect(audioCtx.destination); o.start(); setTimeout(()=>o.stop(),60); }
+function playBeep(){ if(!audioCtx) return; const o = audioCtx.createOscillator(); const g = audioCtx.createGain(); o.type='sine'; o.frequency.value=880; g.gain.value=0.02; o.connect(g); g.connect(audioCtx.destination); o.start(); setTimeout(()=>o.stop(),80); }
 
-/* ---------------- Coupon logic ---------------- */
+/* ---------------- coupon creation & cloud save ---------------- */
 function getRedeemURL(code){
-  // create a page URL that opens this same page in redeem mode
+  // redeem handled in same page (example: https://.../index.html?redeem=1&code=CODE)
   const base = location.origin + location.pathname;
   return base + '?redeem=1&code=' + encodeURIComponent(code);
 }
 
 function renderCouponUI(c){
+  lastGeneratedCoupon = c;
   couponDetails.innerHTML = `
     <div style="display:flex;flex-direction:column;gap:6px">
-      <div style="display:flex;justify-content:space-between;align-items:center">
+      <div style="display:flex;justify-content:space-between">
         <strong>${c.rewardValue}</strong>
         <small class="small">Expires ${c.expiry}</small>
       </div>
-      <div class="small">Code: <code>${c.id}</code></div>
-      <div class="small">Created: ${new Date(c.createdAt).toLocaleString()}</div>
+      <div class="small">Name: ${c.name}</div>
+      <div class="small">Count: ${c.qty}</div>
       <div style="margin-top:8px"><button id="copyBtn" class="btn-muted">Copy code</button></div>
     </div>
   `;
-  qrcodeContainer.innerHTML = '';
-  new QRCode(qrcodeContainer, {text: c.payload, width:160, height:160});
-  redeemPreview.value = c.payload;
-  document.getElementById('copyBtn').addEventListener('click', ()=>{ navigator.clipboard?.writeText(c.id).then(()=>alert('Copied code')) });
+  qrcodeContainer.innerHTML='';
+  new QRCode(qrcodeContainer, {text:c.payload,width:160,height:160});
+  const copyBtn = document.getElementById('copyBtn');
+  if(copyBtn) copyBtn.addEventListener('click', ()=> navigator.clipboard?.writeText(c.id).then(()=>alert('Code copied')));
 }
 
-/* save coupon locally */
-function saveCouponLocal(coupon){
-  const arr = loadLocal(); arr.unshift(coupon); saveLocal(arr);
-}
-
-/* cloud helpers: read raw file from GitHub and write via REST API (requires token) */
-async function fetchCloudFile(){
-  // use raw.githubusercontent to read the file (public)
-  try{
-    const url = `https://raw.githubusercontent.com/${GITHUB_CONFIG.owner}/${GITHUB_CONFIG.repo}/${GITHUB_CONFIG.branch}/${GITHUB_CONFIG.path}`;
-    const r = await fetch(url);
-    if(!r.ok) return null;
-    const txt = await r.text(); return JSON.parse(txt);
-  }catch(e){ return null; }
-}
-
-async function getCloudFileSHA(){
-  // get file metadata to obtain sha for update
-  const apiUrl = `https://api.github.com/repos/${GITHUB_CONFIG.owner}/${GITHUB_CONFIG.repo}/contents/${GITHUB_CONFIG.path}?ref=${GITHUB_CONFIG.branch}`;
-  const r = await fetch(apiUrl, {
-    headers: { Authorization: GITHUB_CONFIG.token ? `token ${GITHUB_CONFIG.token}` : '', Accept: 'application/vnd.github.v3+json' }
-  });
-  if(!r.ok) return null;
-  const j = await r.json(); return j.sha;
-}
-
-async function uploadCloudFile(jsonObj, message = 'Update coupons.json'){
-  if(!GITHUB_CONFIG.enabled || !GITHUB_CONFIG.token) throw new Error('Cloud not enabled or token missing');
-  // prepare base64 content
-  const content = base64Encode(JSON.stringify(jsonObj, null, 2));
-  const sha = await getCloudFileSHA();
-  const apiUrl = `https://api.github.com/repos/${GITHUB_CONFIG.owner}/${GITHUB_CONFIG.repo}/contents/${GITHUB_CONFIG.path}`;
-  const body = { message, branch: GITHUB_CONFIG.branch, content };
-  if(sha) body.sha = sha;
-  const r = await fetch(apiUrl, {
-    method: 'PUT',
-    headers: { Authorization: `token ${GITHUB_CONFIG.token}`, Accept: 'application/vnd.github.v3+json' },
-    body: JSON.stringify(body)
-  });
-  if(!r.ok){
-    const text = await r.text();
-    throw new Error('GitHub API error: ' + r.status + ' ' + text);
-  }
-  return await r.json();
-}
-
-/* create coupon and optionally sync cloud */
-async function createCouponFromCount(){
+async function createCouponFromCounter(){
+  const name = prompt('Enter your name (for coupon)', 'Anonymous') || 'Anonymous';
+  const qty = Math.max(1, count);
+  const pointsPer = 1;
   const code = randCode(9);
   const expiry = isoDateDaysFromNow(30);
-  const rewardValue = `${count * 5} eco points`; // P5 each
+  const rewardValue = `${qty * pointsPer} eco points`;
   const createdAt = new Date().toISOString();
   const payload = getRedeemURL(code);
+  const coupon = { id: code, name, trashType: 'Auto-counted', qty, pointsPer, rewardValue, expiry, createdAt, payload, redeemed:false };
+  const arr = loadLocal(); arr.unshift(coupon); saveLocal(arr);
+  renderCouponUI(coupon); renderHistory();
 
-  const coupon = { id: code, rewardValue, expiry, createdAt, payload, redeemed:false };
-
-  // Save local
-  saveCouponLocal(coupon);
-
-  // Try cloud (if enabled)
-  if(GITHUB_CONFIG.enabled && GITHUB_CONFIG.token){
+  // OPTIONAL CLOUD SAVE (if CLOUD_ENDPOINT set)
+  if(CLOUD_ENDPOINT){
     try{
-      // fetch existing cloud file (or create new structure)
-      let cloud = await fetchCloudFile();
-      if(!cloud || !Array.isArray(cloud.coupons)) cloud = { coupons: [] };
-      cloud.coupons.unshift(coupon);
-      await uploadCloudFile(cloud, `Add coupon ${code}`);
-      setMsg('Coupon saved to cloud and local ✔','#0a8');
-    }catch(err){
-      console.error(err);
-      setMsg('Cloud sync failed — saved locally','#d68');
-    }
-  } else {
-    setMsg('Coupon saved locally (cloud off)','orange');
+      await fetch(CLOUD_ENDPOINT, {
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({coupons: arr})
+      });
+      console.log('Uploaded to cloud');
+    }catch(e){ console.warn('Cloud save failed', e); }
   }
 
-  // Render coupon & history
-  lastGeneratedCoupon = coupon;
-  renderCouponUI(coupon);
-  renderHistory();
-  return coupon;
+  alert('Coupon created: ' + code);
 }
 
-/* History rendering & actions */
+/* ---------------- history ---------------- */
 function renderHistory(){
-  const arr = loadLocal();
-  historyList.innerHTML = '';
-  if(!arr.length){ historyList.innerHTML = '<div class="small muted">No coupons yet.</div>'; return; }
-  arr.forEach((it, idx) => {
-    const d = document.createElement('div'); d.className='history-item';
-    d.innerHTML = `
+  const arr = loadLocal(); historyList.innerHTML='';
+  if(arr.length===0){ historyList.innerHTML = '<div class="small muted">No coupons yet.</div>'; return; }
+  arr.forEach((it,idx)=>{
+    const div = document.createElement('div'); div.className='history-item';
+    div.innerHTML = `
       <div style="min-width:0">
-        <div style="font-weight:700">${it.id} <span style="font-weight:400;color:var(--muted)">· ${it.rewardValue}</span></div>
-        <div class="small">${new Date(it.createdAt).toLocaleString()}</div>
+        <div style="font-weight:700">${it.name} <span style="font-weight:400;color:var(--muted)">· ${it.trashType}</span></div>
+        <div class="small">${it.id} · ${new Date(it.createdAt).toLocaleString()}</div>
       </div>
       <div style="display:flex;gap:6px">
         <button class="btn-muted" data-idx="${idx}" data-act="view">View</button>
-        <button class="btn-muted" data-idx="${idx}" data-act="redeem">Open Redeem</button>
+        <button class="btn-muted" data-idx="${idx}" data-act="redeem">Redeem</button>
         <button class="btn-danger" data-idx="${idx}" data-act="del">Delete</button>
       </div>
     `;
-    historyList.appendChild(d);
+    historyList.appendChild(div);
   });
 
   historyList.querySelectorAll('button').forEach(btn=>{
-    btn.addEventListener('click', (ev)=>{
+    btn.addEventListener('click', ()=>{
       const act = btn.getAttribute('data-act'); const idx = Number(btn.getAttribute('data-idx'));
       const arr = loadLocal(); const item = arr[idx];
-      if(act==='view'){ renderCouponUI(item); window.scrollTo({top:0,behavior:'smooth'}); }
-      else if(act==='del'){ if(!confirm('Delete this coupon?')) return; arr.splice(idx,1); saveLocal(arr); renderHistory(); }
-      else if(act==='redeem'){ window.open(item.payload, '_blank'); }
+      if(act==='view'){ renderCouponUI(item); qrcodeContainer.scrollIntoView({behavior:'smooth'}); }
+      else if(act==='del'){ if(!confirm('Delete?')) return; arr.splice(idx,1); saveLocal(arr); renderHistory(); }
+      else if(act==='redeem'){ // open redeem URL (this page handles redeem if ?redeem=1 present)
+        window.open(item.payload, '_blank');
+      }
     });
   });
 }
 
-/* Export CSV & clear */
+/* ---------------- Export / clear ---------------- */
 exportCSV.addEventListener('click', ()=>{
-  const arr = loadLocal(); if(!arr.length) return alert('No coupons');
-  const rows = [['code','reward','expiry','createdAt','redeemed']];
-  arr.forEach(r=> rows.push([r.id, r.rewardValue, r.expiry, r.createdAt, String(r.redeemed || false)]));
-  const csv = rows.map(r => r.map(cell => `"${String(cell).replace(/"/g,'""')}"`).join(',')).join('\n');
-  const blob = new Blob([csv], {type:'text/csv'}); const url = URL.createObjectURL(blob);
-  const a = document.createElement('a'); a.href = url; a.download = 'smarttrash_coupons.csv'; a.click(); a.remove(); URL.revokeObjectURL(url);
+  const arr = loadLocal(); if(!arr.length){ alert('No coupons'); return; }
+  const rows=[['code','name','trashType','qty','pointsPer','reward','expiry','createdAt']];
+  arr.forEach(r => rows.push([r.id,r.name,r.trashType,r.qty,r.pointsPer,r.rewardValue,r.expiry,r.createdAt]));
+  const csv = rows.map(r=>r.map(cell=>`"${String(cell).replace(/"/g,'""')}"`).join(',')).join('\n');
+  const blob = new Blob([csv],{type:'text/csv'}); const url = URL.createObjectURL(blob);
+  const a = document.createElement('a'); a.href=url; a.download='smarttrash_coupons.csv'; a.click(); a.remove(); URL.revokeObjectURL(url);
 });
-clearAll.addEventListener('click', ()=>{ if(!confirm('Clear all local coupons?')) return; localStorage.removeItem('smartTrash_coupons'); renderHistory(); qrcodeContainer.innerHTML=''; couponDetails.innerHTML='No coupon yet.'; });
+clearAll.addEventListener('click', ()=>{ if(!confirm('Clear all?')) return; localStorage.removeItem('smartTrash_coupons'); renderHistory(); qrcodeContainer.innerHTML=''; couponDetails.innerHTML='No coupon yet.'; });
 
-/* download / copy QR helpers */
-copyLast.addEventListener('click', ()=>{ if(!lastGeneratedCoupon) return alert('No coupon yet'); navigator.clipboard?.writeText(lastGeneratedCoupon.id).then(()=>alert('Copied code')); });
+/* ---------------- Copy / download QR ---------------- */
+copyLast.addEventListener('click', ()=>{ if(!lastGeneratedCoupon) return alert('No coupon yet'); navigator.clipboard?.writeText(lastGeneratedCoupon.id).then(()=>alert('Copied code')) });
 downloadQRCode.addEventListener('click', ()=>{
   if(!lastGeneratedCoupon) return alert('No coupon yet');
-  const q = qrcodeContainer.querySelector('img') || qrcodeContainer.querySelector('canvas');
-  if(!q) return alert('No QR available'); if(q.tagName === 'IMG'){ const a=document.createElement('a'); a.href=q.src; a.download='qrcode.png'; a.click(); }
-  else { const data=q.toDataURL('image/png'); const a=document.createElement('a'); a.href=data; a.download='qrcode.png'; a.click(); }
+  const q = qrcodeContainer.querySelector('img') || qrcodeContainer.querySelector('canvas'); if(!q) return alert('No QR');
+  if(q.tagName === 'IMG'){ const a = document.createElement('a'); a.href = q.src; a.download = 'qrcode.png'; a.click(); }
+  else { const data = q.toDataURL('image/png'); const a = document.createElement('a'); a.href = data; a.download = 'qrcode.png'; a.click(); }
 });
 
-/* generate coupon button */
-generateCouponBtn.addEventListener('click', async ()=>{
-  if(count <= 0) return alert('Count is 0 — nothing to coupon');
-  const name = 'Auto'; // no name required; simplified
-  const coupon = await createCouponFromCount();
-  alert('Coupon created: ' + coupon.id + '\nScan the QR or open the redeem URL on a phone.');
-});
-
-/* UI toggles */
-autoCaptureToggle.addEventListener('click', ()=>{ autoCapture = !autoCapture; autoCaptureToggle.textContent = autoCapture ? '🤖 Auto-capture: ON' : '🤖 Auto-capture: OFF'; });
+/* ---------------- UI actions ---------------- */
+autoCaptureToggle.addEventListener('click', ()=>{ autoCapture = !autoCapture; autoCaptureToggle.textContent = autoCapture ? 'Auto-capture: ON' : 'Auto-capture: OFF'; });
+capturePhotoBtn.addEventListener('click', ()=>{ previewLastCapture(captureSnapshot()); alert('Captured (preview feedback)'); });
+generateCouponBtn.addEventListener('click', ()=> createCouponFromCounter());
 resetBtn.addEventListener('click', manualReset);
-sensitivity.addEventListener('input', ()=>{ sensitivityLabel.textContent = sensitivity.value + ' (' + (getSensitivitySettings().diff) + ' diff)'; });
-themeToggle.addEventListener('click', ()=>{ const cur=document.body.getAttribute('data-theme')||'light'; const next = cur==='light'?'dark':'light'; document.body.setAttribute('data-theme', next); themeToggle.textContent = next==='dark' ? '☀️ Light' : '🌙 Dark'; });
-cloudToggle.addEventListener('click', ()=>{ if(!GITHUB_CONFIG.token){ alert('No token configured in the top of the file. To enable cloud, add GITHUB_CONFIG.token (careful).'); return; } GITHUB_CONFIG.enabled = !GITHUB_CONFIG.enabled; cloudToggle.textContent = GITHUB_CONFIG.enabled ? '☁️ Cloud (on)' : '☁️ Cloud (off)'; });
+cloudToggle.addEventListener('click', ()=>{
+  if(CLOUD_ENDPOINT){ CLOUD_ENDPOINT = ''; cloudToggle.textContent = '☁️ Cloud (off)'; alert('Cloud upload disabled (running locally)'); }
+  else { const ep = prompt('Paste your secure cloud endpoint URL (server required):'); if(ep){ CLOUD_ENDPOINT = ep.trim(); cloudToggle.textContent = '☁️ Cloud (on)'; alert('Cloud endpoint set (do not paste PAT here)'); }}
+});
+themeToggle.addEventListener('click', ()=>{
+  const cur = document.body.getAttribute('data-theme') || 'light'; const next = cur==='light' ? 'dark':'light'; document.body.setAttribute('data-theme', next); themeToggle.textContent = next==='dark' ? '☀️' : '🌙';
+});
 
-/* Redeem-mode handler (when page opened as /?redeem=1&code=CODE) */
-function getQueryParam(name){ return new URLSearchParams(location.search).get(name); }
-
+/* ---------------- Redeem handler (same file) ---------------- */
+function getQueryParam(n){ return new URLSearchParams(location.search).get(n); }
 async function handleRedeemMode(){
-  const redeem = getQueryParam('redeem'); const code = getQueryParam('code');
-  if(!redeem) return false;
-  // show a simple redeem UI
-  document.documentElement.style.height='100%';
-  document.body.innerHTML = `
+  const redeem = getQueryParam('redeem'); const code = getQueryParam('code'); if(!redeem) return;
+  // show redeem UI
+  document.body.innerHTML = '';
+  const html = `
     <div style="min-height:100vh;display:flex;align-items:center;justify-content:center;padding:18px;background:var(--bg)">
       <div style="max-width:720px;width:100%;background:var(--card);padding:18px;border-radius:12px;box-shadow:0 10px 30px rgba(2,6,23,0.08)">
         <h2>Redeem Coupon</h2>
         <div id="result" style="margin-top:12px;padding:12px;border-radius:8px;border:1px solid rgba(0,0,0,0.06)">Checking...</div>
         <div style="margin-top:12px"><button id="backBtn" class="btn-muted">Back</button></div>
       </div>
-    </div>
-  `;
-  const result = document.getElementById('result');
-  document.getElementById('backBtn').addEventListener('click', ()=> location.href = location.pathname);
-
-  // 1) try cloud first (public raw JSON) — good for phone validation if you pushed file or cloud writes are enabled
-  let cloudData = null;
-  try { cloudData = await fetchCloudFile(); } catch(e){ cloudData = null; }
-  const local = loadLocal();
-  // search cloud
-  if(cloudData && Array.isArray(cloudData.coupons)){
-    const idx = cloudData.coupons.findIndex(c=> c.id === code);
-    if(idx === -1){
-      // fallback to local
-      const li = local.findIndex(c=> c.id === code);
-      if(li === -1){ result.innerHTML = `<div style="color:#b00"><strong>Coupon not found</strong><div class="small">This code wasn't found in cloud or local history.</div></div>`; return true; }
-      const item = local[li];
-      if(item.redeemed){ result.innerHTML = `<div style="color:#b00"><strong>Already redeemed</strong><div class="small">Redeemed on ${item.redeemedAt||item.createdAt}</div></div>`; return true; }
-      // mark local redeemed
-      item.redeemed = true; item.redeemedAt = new Date().toISOString(); saveLocal(local);
-      result.innerHTML = `<div style="color:#0a8"><strong>✅ Coupon valid (local)</strong><div class="small">Reward: ${item.rewardValue}</div></div>`; return true;
-    }
-    const item = cloudData.coupons[idx];
-    if(item.redeemed){ result.innerHTML = `<div style="color:#b00"><strong>Already redeemed</strong><div class="small">Redeemed on ${item.redeemedAt||item.createdAt}</div></div>`; return true; }
-    // TRY mark redeemed in cloud only if token is configured client-side (not recommended publicly)
-    if(GITHUB_CONFIG.enabled && GITHUB_CONFIG.token){
+    </div>`;
+  document.write(html); document.close();
+  const result = document.getElementById('result'); document.getElementById('backBtn').addEventListener('click', ()=> location.href = location.pathname);
+  const list = loadLocal();
+  const idx = list.findIndex(c=> c.id === code);
+  if(idx === -1){
+    // if cloud endpoint is configured, attempt cloud fetch (best-effort)
+    if(CLOUD_ENDPOINT){
       try{
-        cloudData.coupons[idx].redeemed = true;
-        cloudData.coupons[idx].redeemedAt = new Date().toISOString();
-        await uploadCloudFile(cloudData, `Redeem ${code}`);
-        result.innerHTML = `<div style="color:#0a8"><strong>✅ Coupon redeemed (cloud)</strong><div class="small">Reward: ${item.rewardValue}</div></div>`;
-        return true;
-      }catch(e){
-        // cannot mark cloud (maybe token invalid) — still allow redemption UX
-        result.innerHTML = `<div style="color:#0a8"><strong>✅ Coupon valid</strong><div class="small">Reward: ${item.rewardValue}</div><div class="small" style="margin-top:8px;color:orange">Note: couldn't mark cloud as redeemed (token not set or permission issue).</div></div>`;
-        return true;
-      }
-    } else {
-      // token not present — show success but cannot mark cloud redeemed (possible duplicate use)
-      result.innerHTML = `<div style="color:#0a8"><strong>✅ Coupon valid</strong><div class="small">Reward: ${item.rewardValue}</div><div class="small" style="margin-top:8px;color:orange">To mark this coupon redeemed across devices, enable cloud write (add a PAT to the page or use a server).</div></div>`;
-      return true;
+        const res = await fetch(CLOUD_ENDPOINT + '?action=get');
+        if(res.ok){ const cloudList = await res.json(); const idx2 = cloudList.findIndex(c=> c.id===code); if(idx2>-1){ const item2 = cloudList[idx2]; item2.redeemed = true; item2.redeemedAt = new Date().toISOString(); // attempt cloud update
+            await fetch(CLOUD_ENDPOINT, {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({coupons: cloudList})});
+            result.innerHTML = `<div style="color:#0a8"><strong>✅ Coupon Valid (cloud)</strong><div class="small">Name: ${item2.name} · Reward: ${item2.rewardValue}</div></div>`; return;
+        }}
+      }catch(e){}
     }
-  } else {
-    // no cloud available — search local storage only
-    const li = local.findIndex(c=> c.id === code);
-    if(li === -1){ result.innerHTML = `<div style="color:#b00"><strong>Coupon not found</strong><div class="small">This code wasn't found in local history.</div></div>`; return true; }
-    const item = local[li];
-    if(item.redeemed){ result.innerHTML = `<div style="color:#b00"><strong>Already redeemed</strong><div class="small">Redeemed on ${item.redeemedAt||item.createdAt}</div></div>`; return true; }
-    item.redeemed = true; item.redeemedAt = new Date().toISOString(); local[li] = item; saveLocal(local);
-    result.innerHTML = `<div style="color:#0a8"><strong>✅ Coupon valid (local)</strong><div class="small">Reward: ${item.rewardValue}</div></div>`; return true;
+    result.innerHTML = `<div style="color:#b00"><strong>Coupon not found</strong><div class="small">This code wasn't found locally. Generate coupon on the laptop, or enable cloud endpoint as described in README.</div></div>`; return;
   }
+  const item = list[idx];
+  if(item.redeemed){ result.innerHTML = `<div style="color:#b00"><strong>Already redeemed</strong><div class="small">Redeemed on ${new Date(item.redeemedAt||item.createdAt).toLocaleString()}</div></div>`; return; }
+  item.redeemed = true; item.redeemedAt = new Date().toISOString(); list[idx] = item; saveLocal(list);
+  result.innerHTML = `<div style="color:#0a8"><strong>✅ Coupon Valid</strong><div class="small">Name: ${item.name} · Reward: ${item.rewardValue}</div><div style="margin-top:8px">Redeemed successfully.</div></div>`;
 }
 
-/* Init */
+/* ---------------- Init ---------------- */
 (async function init(){
-  // if redeem mode, handle and exit
   if(getQueryParam('redeem')){ await handleRedeemMode(); return; }
-
   renderHistory();
-  // start camera detection
   await startCamera();
-
-  // sensitivity label
-  sensitivityLabel.textContent = sensitivity.value + ' (' + getSensitivitySettings().diff + ' diff)';
-
-  // cooldown UI loop
-  (function cdLoop(){
-    try{
-      const since = Date.now() - lastCountTime;
-      cdText.textContent = (since < COOLDOWN_MS) ? ('Cooldown ' + Math.ceil((COOLDOWN_MS - since)/1000) + 's') : 'Ready';
-    }catch(e){}
-    requestAnimationFrame(cdLoop);
-  })();
-
-  // if user set GITHUB_CONFIG.enabled true in the file and token is missing, show hint
-  if(GITHUB_CONFIG.enabled && !GITHUB_CONFIG.token){
-    setMsg('Cloud enabled but token missing — configure token in top of file (or toggle from console).','orange');
-  }
+  (function cdLoop(){ try{ const since = Date.now() - lastCountTime; cdText.textContent = (since<COOLDOWN_MS) ? ('Cooldown ' + Math.ceil((COOLDOWN_MS - since)/100)/10 + 's') : 'Ready'; }catch(e){} requestAnimationFrame(cdLoop); })();
 })();
 </script>
 </body>
