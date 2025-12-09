@@ -1,428 +1,83 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>Smart Trash Bin — Counter & Coupons</title>
-
-<!-- QR lib -->
-<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
-
+<title>Smart Garbage Bottle Counter</title>
 <style>
-  :root{--bg:#eef6fb;--card:#fff;--muted:#5b6b78;--accent:#0a4d7c;--accent-2:#0b6ba7;--danger:#d64545}
-  body{margin:0;font-family:Inter,system-ui,Arial;background:linear-gradient(180deg,var(--bg),#f6fbff);color:#042233;padding:18px}
-  .wrap{max-width:1100px;margin:10px auto;display:grid;grid-template-columns:560px 1fr;gap:18px}
-  header{grid-column:1/-1;display:flex;justify-content:space-between;align-items:center}
-  .logo{width:44px;height:44px;border-radius:10px;background:linear-gradient(135deg,var(--accent),var(--accent-2));display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700}
-  .card{background:#fff;border-radius:12px;padding:14px;box-shadow:0 10px 30px rgba(2,6,23,.06)}
-  /* camera */
-  #video{width:520px;height:360px;background:#000;border-radius:10px;object-fit:cover;border:2px solid rgba(0,0,0,.04)}
-  .pill{background:linear-gradient(90deg,#fff,#f3f7fb);padding:10px 14px;border-radius:10px;font-weight:800}
-  .controls{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
-  button{padding:10px 12px;border-radius:8px;border:none;cursor:pointer;font-weight:700}
-  .btn-primary{background:linear-gradient(180deg,var(--accent),var(--accent-2));color:white}
-  .btn-muted{background:transparent;border:1px solid rgba(0,0,0,0.06)}
-  .btn-danger{background:var(--danger);color:white}
-  .small{font-size:13px;color:var(--muted)}
-  #qrcode{margin:8px auto}
-  .history{max-height:300px;overflow:auto;margin-top:8px;display:flex;flex-direction:column;gap:8px}
-  .history-item{display:flex;justify-content:space-between;align-items:center;padding:8px;border-radius:8px;border:1px solid rgba(0,0,0,0.04)}
-  .muted{color:var(--muted);font-size:13px}
-  @media (max-width:980px){.wrap{grid-template-columns:1fr}}
+  body{margin:0;font-family:Arial,sans-serif;background:#111;color:#fff;text-align:center;padding:20px;}
+  h2{margin-bottom:10px;}
+  #video{width:260px;height:420px;background:#000;border:2px solid #fff;border-radius:12px;object-fit:cover;margin:0 auto 12px;display:block;}
+  #counter{display:inline-block;background:#fff;color:#000;padding:10px 16px;border-radius:10px;font-weight:700;margin-top:6px;}
+  #msg{margin-top:12px;min-height:44px;white-space:pre-line;line-height:1.3;}
+  #peso{margin-top:12px;font-size:22px;font-weight:bold;color:#00e676;}
+  .controls{margin-top:14px;display:flex;gap:10px;justify-content:center;flex-wrap:wrap;}
+  button{padding:10px 14px;font-size:15px;border-radius:8px;border:none;cursor:pointer;font-weight:600;}
+  .btn-claim{background:#00e676;color:#05221a;}
+  .btn-reset{background:#ff1744;color:white;}
 </style>
 </head>
-<body data-theme="light">
-<div class="wrap">
-
-  <header>
-    <div style="display:flex;gap:12px;align-items:center">
-      <div class="logo">♻️</div>
-      <div>
-        <h2 style="margin:0">Smart Trash Bin</h2>
-        <div class="small">Motion detector → count bottles → generate coupon</div>
-      </div>
-    </div>
-
-    <div style="display:flex;gap:8px;align-items:center">
-      <button id="themeToggle" class="btn-muted">🌙</button>
-      <button id="cloudToggle" class="btn-muted" title="Enable cloud saving (requires server endpoint)">☁️ Cloud (off)</button>
-    </div>
-  </header>
-
-  <!-- LEFT: Camera & counter -->
-  <section class="card" id="cameraCard">
-    <div style="display:flex;justify-content:space-between;align-items:center">
-      <strong>Camera — Motion Detector</strong>
-      <div id="cdText" class="small">Ready</div>
-    </div>
-
-    <video id="video" autoplay playsinline muted></video>
-
-    <div style="display:flex;gap:12px;align-items:center;margin-top:10px;flex-wrap:wrap;justify-content:center">
-      <div class="pill">Bottles: <span id="count">0</span></div>
-      <div class="pill">Peso est.: <span id="peso">₱0</span></div>
-      <div class="pill small" id="detectionInfo">Idle</div>
-    </div>
-
-    <div id="msg" class="small muted" style="margin-top:10px">Initializing camera…</div>
-
-    <div class="controls">
-      <button id="autoCaptureToggle" class="btn-muted">Auto-capture: OFF</button>
-      <button id="capturePhoto" class="btn-primary">Capture</button>
-      <button id="generateCoupon" class="btn-primary">Generate Coupon</button>
-      <button id="resetBtn" class="btn-danger">Reset</button>
-    </div>
-  </section>
-
-  <!-- RIGHT: Coupon + history -->
-  <aside>
-    <div class="card">
-      <div style="display:flex;justify-content:space-between;align-items:center">
-        <strong>Coupon</strong>
-        <div style="display:flex;gap:8px">
-          <button id="copyLast" class="btn-muted">Copy</button>
-          <button id="downloadQRCode" class="btn-muted">Download QR</button>
-        </div>
-      </div>
-
-      <div style="margin-top:10px" class="coupon-card">
-        <div id="qrcode"></div>
-        <div id="couponDetails" class="small muted">No coupon yet. Use "Generate Coupon".</div>
-      </div>
-    </div>
-
-    <div class="card" style="margin-top:12px">
-      <div style="display:flex;justify-content:space-between;align-items:center">
-        <strong>History</strong>
-        <div style="display:flex;gap:8px">
-          <button id="exportCSV" class="btn-muted">⬇️ CSV</button>
-          <button id="clearAll" class="btn-danger">Clear</button>
-        </div>
-      </div>
-      <div class="history" id="historyList"></div>
-      <div class="muted" style="margin-top:8px">Local storage is used by default. Enable Cloud to push coupons to your private repo via a secure server endpoint.</div>
-    </div>
-  </aside>
+<body>
+<h2>Smart Trash Bottle Counter ♻️</h2>
+<video id="video" autoplay playsinline muted></video>
+<div id="counter">Bottles: <span id="count">0</span></div>
+<div id="peso">₱0</div>
+<div id="msg">Initializing camera…</div>
+<div class="controls">
+  <button class="btn-claim" id="claimBtn">Show Peso 💰</button>
+  <button class="btn-reset" id="resetBtn">Reset</button>
 </div>
 
 <script>
-/* ---------------- CONFIG ----------------
-  CLOUD_ENDPOINT: OPTIONAL secure server endpoint that accepts POST { coupons } and
-  writes to your GitHub repo using a server-side PAT stored as an env var.
-  Example: https://my-server.example.com/save-coupons
-  If you don't have a server, skip it — localStorage only still works.
-*/
-let CLOUD_ENDPOINT = ""; // set this after deploying the serverless function (see instructions below)
+let count=0,lastCountTime=0;
+const video=document.getElementById('video');
+const countDisplay=document.getElementById('count');
+const msg=document.getElementById('msg');
+const pesoDisplay=document.getElementById('peso');
 
-/* ---------------- Utilities ---------------- */
-function el(id){return document.getElementById(id)}
-function randCode(len=9){
-  const chars='ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
-  return Array.from({length:len},()=>chars[Math.floor(Math.random()*chars.length)]).join('');
-}
-function isoDateDaysFromNow(days){
-  const d=new Date(); d.setDate(d.getDate()+days); return d.toISOString().split('T')[0];
-}
-function saveLocal(arr){ localStorage.setItem('smartTrash_coupons', JSON.stringify(arr)); }
-function loadLocal(){ try { return JSON.parse(localStorage.getItem('smartTrash_coupons')||'[]'); } catch(e){ return []; } }
-
-/* ---------------- UI refs ---------------- */
-const video = el('video');
-const countEl = el('count'), pesoEl = el('peso'), msgEl = el('msg'), cdText = el('cdText'), detectionInfo = el('detectionInfo');
-const autoCaptureToggle = el('autoCaptureToggle'), capturePhotoBtn = el('capturePhoto');
-const generateCouponBtn = el('generateCoupon'), resetBtn = el('resetBtn');
-const qrcodeContainer = el('qrcode'), couponDetails = el('couponDetails');
-const historyList = el('historyList'), exportCSV = el('exportCSV'), clearAll = el('clearAll');
-const copyLast = el('copyLast'), downloadQRCode = el('downloadQRCode');
-const cloudToggle = el('cloudToggle'), themeToggle = el('themeToggle');
-
-let count = 0;
-let lastCountTime = 0;
-let prevFrame = null;
-let autoCapture = false;
-let lastGeneratedCoupon = null;
-const COOLDOWN_MS = 1200;
-const FPS_INTERVAL = 100; // ~10 fps
-const SAMPLE_STEP = 6;
-const Y_DIFF_THRESHOLD = 24;
-const MOTION_SCORE_THRESHOLD = 420;
-const MIN_AREA_PIXELS = 180;
-let prevGray = null, prevCentroid = null;
-let streamRef = null;
-
-/* ---------------- Motion detection (shadow-resistant) ---------------- */
-function setMsg(t, c){ msgEl.textContent = t; if(c) msgEl.style.color = c; }
-function updatePeso(){ pesoEl.textContent = '₱' + count; }
-function manualReset(){ count = 0; lastCountTime = 0; countEl.textContent = count; updatePeso(); setMsg('Counter reset ✔','#0a8'); }
-function captureSnapshot(){
-  try {
-    const w = video.videoWidth, h = video.videoHeight; if(!w||!h) return '';
-    const canvas = document.createElement('canvas'); canvas.width = Math.round(w*0.6); canvas.height = Math.round(h*0.6);
-    const ctx = canvas.getContext('2d'); ctx.drawImage(video,0,0,canvas.width,canvas.height);
-    return canvas.toDataURL('image/jpeg',0.75);
-  } catch(e){ return ''; }
-}
-
-function handleBottleDetected(){
-  const now = Date.now(); if(now - lastCountTime < COOLDOWN_MS) return;
-  lastCountTime = now; count++; countEl.textContent = count; updatePeso(); setMsg('Bottle detected ✅','#00e676');
-  detectionInfo.textContent = 'Detected: ' + new Date().toLocaleTimeString();
-  if(autoCapture){ previewLastCapture(captureSnapshot()); }
-}
-
-function previewLastCapture(dataUrl){
-  // show a tiny visual feedback as blinking border on video (not storing image in UI to keep UI small)
-  if(!dataUrl) return;
-  video.style.outline = '4px solid rgba(10,141,141,0.18)';
-  setTimeout(()=> video.style.outline = '', 420);
-}
-
-function detectMotion(ts){
+function setMsg(text,color){msg.style.color=color||'#fff';msg.textContent=text;}
+function manualReset(){count=0;countDisplay.textContent=count;pesoDisplay.textContent='₱0';setMsg('Counter reset ✔','#64ffda');}
+function resetIfNoMotion(){clearTimeout(window.noMotionReset);window.noMotionReset=setTimeout(()=>{count=0;countDisplay.textContent=count;pesoDisplay.textContent='₱0';setMsg('No motion 5 mins → Auto reset','orange');},5*60*1000);}
+function detectMotion(){
+  const w=video.videoWidth,h=video.videoHeight;
+  if(!w||!h){requestAnimationFrame(detectMotion);return;}
+  const canvas=document.createElement('canvas');
+  canvas.width=Math.round(w/2);
+  canvas.height=Math.round(h/2);
+  const ctx=canvas.getContext('2d');
+  ctx.drawImage(video,0,0,canvas.width,canvas.height);
+  const cropX=Math.round(canvas.width*0.25);
+  const cropY=Math.round(canvas.height*0.35);
+  const cropW=Math.max(1,Math.round(canvas.width*0.5));
+  const cropH=Math.max(1,Math.round(canvas.height*0.3));
+  ctx.filter='blur(4px)';
+  const frame=ctx.getImageData(cropX,cropY,cropW,cropH);
+  ctx.filter='none';
+  if(!window.prevFrame){window.prevFrame=frame;resetIfNoMotion();requestAnimationFrame(detectMotion);return;}
+  const prev=window.prevFrame.data,curr=frame.data;
+  let motionScore=0;
+  for(let i=0;i<curr.length;i+=12){
+    const diff=Math.abs(curr[i]-prev[i])+Math.abs(curr[i+1]-prev[i+1])+Math.abs(curr[i+2]-prev[i+2]);
+    if(diff>85) motionScore++;
+  }
+  const now=Date.now();
+  if(motionScore>500&&now-lastCountTime>1200){count++;countDisplay.textContent=count;lastCountTime=now;setMsg('Bottle detected ✅','#00e676');resetIfNoMotion();}
+  window.prevFrame=frame;
   requestAnimationFrame(detectMotion);
-  if(!video || video.readyState < 2) return;
-  if(ts - (window._lastFrame||0) < FPS_INTERVAL) return;
-  window._lastFrame = ts;
-
-  const w = video.videoWidth, h = video.videoHeight; if(!w||!h) return;
-  const canvas = document.createElement('canvas'); canvas.width = Math.round(w/2); canvas.height = Math.round(h/2);
-  const ctx = canvas.getContext('2d'); ctx.drawImage(video,0,0,canvas.width,canvas.height);
-
-  // crop lower-center region
-  const cropX = Math.round(canvas.width * 0.18);
-  const cropY = Math.round(canvas.height * 0.25);
-  const cropW = Math.max(1,Math.round(canvas.width*0.64));
-  const cropH = Math.max(1,Math.round(canvas.height*0.55));
-  let frame;
-  try { frame = ctx.getImageData(cropX,cropY,cropW,cropH); } catch(e){ return; }
-
-  const data = frame.data;
-  const width = cropW, height = cropH;
-  const currGray = new Float32Array((data.length/4));
-  let pi = 0;
-  for(let i=0;i<data.length;i+=4){ currGray[pi++] = 0.299*data[i] + 0.587*data[i+1] + 0.114*data[i+2]; }
-
-  if(!prevGray){ prevGray = currGray; prevCentroid = null; return; }
-
-  let motionScore = 0, sumX=0,sumY=0,countSamples=0,minX=width,minY=height,maxX=0,maxY=0;
-  const step = SAMPLE_STEP;
-  for(let y=0;y<height;y+=step){
-    for(let x=0;x<width;x+=step){
-      const p = y*width + x;
-      const diff = Math.abs(currGray[p] - prevGray[p]);
-      if(diff > Y_DIFF_THRESHOLD){
-        motionScore++; sumX+=x; sumY+=y; countSamples++;
-        if(x<minX)minX=x; if(y<minY)minY=y; if(x>maxX)maxX=x; if(y>maxY)maxY=y;
-      }
-    }
-  }
-
-  const approxArea = countSamples * (step*step);
-  let centroid = null;
-  if(countSamples>0) centroid = {x: sumX/countSamples, y: sumY/countSamples};
-
-  let downward = true;
-  if(prevCentroid && centroid){
-    downward = (centroid.y - prevCentroid.y) > 4; // needs to move downward
-  }
-
-  cdText.textContent = (Date.now() - lastCountTime < COOLDOWN_MS) ? 'Cooldown' : 'Ready';
-  detectionInfo.textContent = `Score:${motionScore} Area:${approxArea} Centroid:${centroid?Math.round(centroid.y):'-'}`;
-
-  if(motionScore >= MOTION_SCORE_THRESHOLD && approxArea >= MIN_AREA_PIXELS && downward){
-    handleBottleDetected();
-    try{ playBeep(); }catch(e){}
-    prevCentroid = centroid || prevCentroid;
-  } else {
-    // smooth centroid
-    if(prevCentroid && centroid){
-      prevCentroid.x = prevCentroid.x*0.6 + centroid.x*0.4;
-      prevCentroid.y = prevCentroid.y*0.6 + centroid.y*0.4;
-    } else if(centroid && !prevCentroid){ prevCentroid = centroid; }
-  }
-
-  prevGray = currGray;
 }
 
-/* ---------------- camera ---------------- */
-async function startCamera(){
+(async function startCamera(){
   try{
-    const s = await navigator.mediaDevices.getUserMedia({video:{facingMode:'environment', width:{ideal:1280}, height:{ideal:720}}, audio:false});
-    streamRef = s; video.srcObject = s; await video.play(); setMsg('Camera started ✔','#0a8');
-    requestAnimationFrame(detectMotion);
-  }catch(err){
-    setMsg('Camera failed — allow permission or try HTTPS','orange');
-  }
-}
-function stopCamera(){ try{ if(streamRef){ streamRef.getTracks().forEach(t=>t.stop()); streamRef=null; setMsg('Camera stopped','#aab'); }}catch(e){} }
-
-/* ---------------- audio feedback ---------------- */
-const audioCtx = (typeof AudioContext !== 'undefined') ? new AudioContext() : null;
-function playBeep(){ if(!audioCtx) return; const o = audioCtx.createOscillator(); const g = audioCtx.createGain(); o.type='sine'; o.frequency.value=880; g.gain.value=0.02; o.connect(g); g.connect(audioCtx.destination); o.start(); setTimeout(()=>o.stop(),80); }
-
-/* ---------------- coupon creation & cloud save ---------------- */
-function getRedeemURL(code){
-  // redeem handled in same page (example: https://.../index.html?redeem=1&code=CODE)
-  const base = location.origin + location.pathname;
-  return base + '?redeem=1&code=' + encodeURIComponent(code);
-}
-
-function renderCouponUI(c){
-  lastGeneratedCoupon = c;
-  couponDetails.innerHTML = `
-    <div style="display:flex;flex-direction:column;gap:6px">
-      <div style="display:flex;justify-content:space-between">
-        <strong>${c.rewardValue}</strong>
-        <small class="small">Expires ${c.expiry}</small>
-      </div>
-      <div class="small">Name: ${c.name}</div>
-      <div class="small">Count: ${c.qty}</div>
-      <div style="margin-top:8px"><button id="copyBtn" class="btn-muted">Copy code</button></div>
-    </div>
-  `;
-  qrcodeContainer.innerHTML='';
-  new QRCode(qrcodeContainer, {text:c.payload,width:160,height:160});
-  const copyBtn = document.getElementById('copyBtn');
-  if(copyBtn) copyBtn.addEventListener('click', ()=> navigator.clipboard?.writeText(c.id).then(()=>alert('Code copied')));
-}
-
-async function createCouponFromCounter(){
-  const name = prompt('Enter your name (for coupon)', 'Anonymous') || 'Anonymous';
-  const qty = Math.max(1, count);
-  const pointsPer = 1;
-  const code = randCode(9);
-  const expiry = isoDateDaysFromNow(30);
-  const rewardValue = `${qty * pointsPer} eco points`;
-  const createdAt = new Date().toISOString();
-  const payload = getRedeemURL(code);
-  const coupon = { id: code, name, trashType: 'Auto-counted', qty, pointsPer, rewardValue, expiry, createdAt, payload, redeemed:false };
-  const arr = loadLocal(); arr.unshift(coupon); saveLocal(arr);
-  renderCouponUI(coupon); renderHistory();
-
-  // OPTIONAL CLOUD SAVE (if CLOUD_ENDPOINT set)
-  if(CLOUD_ENDPOINT){
-    try{
-      await fetch(CLOUD_ENDPOINT, {
-        method:'POST',
-        headers:{'Content-Type':'application/json'},
-        body: JSON.stringify({coupons: arr})
-      });
-      console.log('Uploaded to cloud');
-    }catch(e){ console.warn('Cloud save failed', e); }
-  }
-
-  alert('Coupon created: ' + code);
-}
-
-/* ---------------- history ---------------- */
-function renderHistory(){
-  const arr = loadLocal(); historyList.innerHTML='';
-  if(arr.length===0){ historyList.innerHTML = '<div class="small muted">No coupons yet.</div>'; return; }
-  arr.forEach((it,idx)=>{
-    const div = document.createElement('div'); div.className='history-item';
-    div.innerHTML = `
-      <div style="min-width:0">
-        <div style="font-weight:700">${it.name} <span style="font-weight:400;color:var(--muted)">· ${it.trashType}</span></div>
-        <div class="small">${it.id} · ${new Date(it.createdAt).toLocaleString()}</div>
-      </div>
-      <div style="display:flex;gap:6px">
-        <button class="btn-muted" data-idx="${idx}" data-act="view">View</button>
-        <button class="btn-muted" data-idx="${idx}" data-act="redeem">Redeem</button>
-        <button class="btn-danger" data-idx="${idx}" data-act="del">Delete</button>
-      </div>
-    `;
-    historyList.appendChild(div);
-  });
-
-  historyList.querySelectorAll('button').forEach(btn=>{
-    btn.addEventListener('click', ()=>{
-      const act = btn.getAttribute('data-act'); const idx = Number(btn.getAttribute('data-idx'));
-      const arr = loadLocal(); const item = arr[idx];
-      if(act==='view'){ renderCouponUI(item); qrcodeContainer.scrollIntoView({behavior:'smooth'}); }
-      else if(act==='del'){ if(!confirm('Delete?')) return; arr.splice(idx,1); saveLocal(arr); renderHistory(); }
-      else if(act==='redeem'){ // open redeem URL (this page handles redeem if ?redeem=1 present)
-        window.open(item.payload, '_blank');
-      }
-    });
-  });
-}
-
-/* ---------------- Export / clear ---------------- */
-exportCSV.addEventListener('click', ()=>{
-  const arr = loadLocal(); if(!arr.length){ alert('No coupons'); return; }
-  const rows=[['code','name','trashType','qty','pointsPer','reward','expiry','createdAt']];
-  arr.forEach(r => rows.push([r.id,r.name,r.trashType,r.qty,r.pointsPer,r.rewardValue,r.expiry,r.createdAt]));
-  const csv = rows.map(r=>r.map(cell=>`"${String(cell).replace(/"/g,'""')}"`).join(',')).join('\n');
-  const blob = new Blob([csv],{type:'text/csv'}); const url = URL.createObjectURL(blob);
-  const a = document.createElement('a'); a.href=url; a.download='smarttrash_coupons.csv'; a.click(); a.remove(); URL.revokeObjectURL(url);
-});
-clearAll.addEventListener('click', ()=>{ if(!confirm('Clear all?')) return; localStorage.removeItem('smartTrash_coupons'); renderHistory(); qrcodeContainer.innerHTML=''; couponDetails.innerHTML='No coupon yet.'; });
-
-/* ---------------- Copy / download QR ---------------- */
-copyLast.addEventListener('click', ()=>{ if(!lastGeneratedCoupon) return alert('No coupon yet'); navigator.clipboard?.writeText(lastGeneratedCoupon.id).then(()=>alert('Copied code')) });
-downloadQRCode.addEventListener('click', ()=>{
-  if(!lastGeneratedCoupon) return alert('No coupon yet');
-  const q = qrcodeContainer.querySelector('img') || qrcodeContainer.querySelector('canvas'); if(!q) return alert('No QR');
-  if(q.tagName === 'IMG'){ const a = document.createElement('a'); a.href = q.src; a.download = 'qrcode.png'; a.click(); }
-  else { const data = q.toDataURL('image/png'); const a = document.createElement('a'); a.href = data; a.download = 'qrcode.png'; a.click(); }
-});
-
-/* ---------------- UI actions ---------------- */
-autoCaptureToggle.addEventListener('click', ()=>{ autoCapture = !autoCapture; autoCaptureToggle.textContent = autoCapture ? 'Auto-capture: ON' : 'Auto-capture: OFF'; });
-capturePhotoBtn.addEventListener('click', ()=>{ previewLastCapture(captureSnapshot()); alert('Captured (preview feedback)'); });
-generateCouponBtn.addEventListener('click', ()=> createCouponFromCounter());
-resetBtn.addEventListener('click', manualReset);
-cloudToggle.addEventListener('click', ()=>{
-  if(CLOUD_ENDPOINT){ CLOUD_ENDPOINT = ''; cloudToggle.textContent = '☁️ Cloud (off)'; alert('Cloud upload disabled (running locally)'); }
-  else { const ep = prompt('Paste your secure cloud endpoint URL (server required):'); if(ep){ CLOUD_ENDPOINT = ep.trim(); cloudToggle.textContent = '☁️ Cloud (on)'; alert('Cloud endpoint set (do not paste PAT here)'); }}
-});
-themeToggle.addEventListener('click', ()=>{
-  const cur = document.body.getAttribute('data-theme') || 'light'; const next = cur==='light' ? 'dark':'light'; document.body.setAttribute('data-theme', next); themeToggle.textContent = next==='dark' ? '☀️' : '🌙';
-});
-
-/* ---------------- Redeem handler (same file) ---------------- */
-function getQueryParam(n){ return new URLSearchParams(location.search).get(n); }
-async function handleRedeemMode(){
-  const redeem = getQueryParam('redeem'); const code = getQueryParam('code'); if(!redeem) return;
-  // show redeem UI
-  document.body.innerHTML = '';
-  const html = `
-    <div style="min-height:100vh;display:flex;align-items:center;justify-content:center;padding:18px;background:var(--bg)">
-      <div style="max-width:720px;width:100%;background:var(--card);padding:18px;border-radius:12px;box-shadow:0 10px 30px rgba(2,6,23,0.08)">
-        <h2>Redeem Coupon</h2>
-        <div id="result" style="margin-top:12px;padding:12px;border-radius:8px;border:1px solid rgba(0,0,0,0.06)">Checking...</div>
-        <div style="margin-top:12px"><button id="backBtn" class="btn-muted">Back</button></div>
-      </div>
-    </div>`;
-  document.write(html); document.close();
-  const result = document.getElementById('result'); document.getElementById('backBtn').addEventListener('click', ()=> location.href = location.pathname);
-  const list = loadLocal();
-  const idx = list.findIndex(c=> c.id === code);
-  if(idx === -1){
-    // if cloud endpoint is configured, attempt cloud fetch (best-effort)
-    if(CLOUD_ENDPOINT){
-      try{
-        const res = await fetch(CLOUD_ENDPOINT + '?action=get');
-        if(res.ok){ const cloudList = await res.json(); const idx2 = cloudList.findIndex(c=> c.id===code); if(idx2>-1){ const item2 = cloudList[idx2]; item2.redeemed = true; item2.redeemedAt = new Date().toISOString(); // attempt cloud update
-            await fetch(CLOUD_ENDPOINT, {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({coupons: cloudList})});
-            result.innerHTML = `<div style="color:#0a8"><strong>✅ Coupon Valid (cloud)</strong><div class="small">Name: ${item2.name} · Reward: ${item2.rewardValue}</div></div>`; return;
-        }}
-      }catch(e){}
-    }
-    result.innerHTML = `<div style="color:#b00"><strong>Coupon not found</strong><div class="small">This code wasn't found locally. Generate coupon on the laptop, or enable cloud endpoint as described in README.</div></div>`; return;
-  }
-  const item = list[idx];
-  if(item.redeemed){ result.innerHTML = `<div style="color:#b00"><strong>Already redeemed</strong><div class="small">Redeemed on ${new Date(item.redeemedAt||item.createdAt).toLocaleString()}</div></div>`; return; }
-  item.redeemed = true; item.redeemedAt = new Date().toISOString(); list[idx] = item; saveLocal(list);
-  result.innerHTML = `<div style="color:#0a8"><strong>✅ Coupon Valid</strong><div class="small">Name: ${item.name} · Reward: ${item.rewardValue}</div><div style="margin-top:8px">Redeemed successfully.</div></div>`;
-}
-
-/* ---------------- Init ---------------- */
-(async function init(){
-  if(getQueryParam('redeem')){ await handleRedeemMode(); return; }
-  renderHistory();
-  await startCamera();
-  (function cdLoop(){ try{ const since = Date.now() - lastCountTime; cdText.textContent = (since<COOLDOWN_MS) ? ('Cooldown ' + Math.ceil((COOLDOWN_MS - since)/100)/10 + 's') : 'Ready'; }catch(e){} requestAnimationFrame(cdLoop); })();
+    const stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:'environment'}});
+    video.srcObject=stream;await video.play();setMsg('Camera started ✔','#64ffda');detectMotion();
+  }catch(err){setMsg('Camera failed. Allow permission!','orange');}
 })();
+
+document.getElementById('claimBtn').addEventListener('click',()=>{
+  pesoDisplay.textContent='₱'+count;
+  setMsg('Peso calculated','#00e676');
+});
+document.getElementById('resetBtn').addEventListener('click',manualReset);
 </script>
 </body>
 </html>
