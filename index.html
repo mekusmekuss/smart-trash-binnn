@@ -61,6 +61,8 @@
   .muted{font-size:13px;color:var(--muted);margin-top:6px}
   .top-controls{display:flex;gap:8px;align-items:center}
   .cooldown{font-size:13px;color:var(--muted)}
+  /* overlay preview for debugging (hidden by default) */
+  #debugCanvas{display:none;position:absolute;left:20px;top:20px;border:2px solid rgba(0,0,0,0.3);z-index:9999}
 </style>
 </head>
 <body data-theme="light">
@@ -235,10 +237,21 @@ let autoCapture = false;
 let lastCaptureDataUrl = '';
 let noMotionTimer = null;
 const COOLDOWN_MS = 1200;
-const FPS_INTERVAL = 80; // ~12-13 FPS
-const MOTION_THRESHOLD_PIXEL_DIFF = 500;   
-const MOTION_THRESHOLD_SCORE = 3000;  
 
+// Tunable detection constants (start conservative)
+const FPS_INTERVAL = 100;         // ~10 fps
+const SAMPLE_STEP = 6;            // sample every Nth pixel (affects perf & sensitivity)
+const Y_DIFF_THRESHOLD = 22;      // per-pixel luma diff to consider change (shadows smaller)
+const MOTION_SCORE_THRESHOLD = 420; // number of changed samples needed
+const MIN_AREA_PIXELS = 180;      // minimum changed-pixel count to consider a real object
+const DOWNWARD_PIXELS_THRESHOLD = 4; // centroid Y must move down at least this (pixels on scaled crop)
+const SMOOTH_CENTROID_ALPHA = 0.4; // how quickly centroid history follows (0..1)
+
+// internal state for centroid & previous gray
+let prevGray = null;
+let prevCentroid = null;
+
+/* helper UI */
 function setMsg(text, color){ msgEl.style.color = color||'var(--muted)'; msgEl.textContent = text; }
 function updatePeso(){ pesoEl.textContent = '₱' + count; }
 function manualReset(){ count = 0; lastCountTime = 0; countEl.textContent = count; updatePeso(); setMsg('Counter reset ✔', '#0a8'); }
@@ -253,10 +266,8 @@ function handleBottleDetected(){
   updatePeso();
   setMsg('Bottle detected ✅', '#00e676');
   detectionInfo.textContent = 'Detected: ' + new Date().toLocaleTimeString();
-  // capture a snapshot if autoCapture is ON
   if(autoCapture) captureSnapshot();
   resetIfNoMotion();
-  // show cooldown text (handled by animation loop)
 }
 
 function captureSnapshot(){
@@ -264,7 +275,6 @@ function captureSnapshot(){
     const w = video.videoWidth, h = video.videoHeight;
     if(!w||!h) return '';
     const canvas = document.createElement('canvas');
-    // small resolution to save size
     const scale = 0.6;
     canvas.width = Math.round(w * scale);
     canvas.height = Math.round(h * scale);
@@ -280,8 +290,24 @@ function captureSnapshot(){
   }
 }
 
+/* ------------------ Shadow-resistant + Size + Downward detection ------------------ */
+
+/*
+  Algorithm summary:
+   - draw scaled & cropped frame
+   - compute per-pixel luma (Y)
+   - compare to previous frame's Y (diff)
+   - threshold diff to build a sparse "changed pixels" set (samples)
+   - compute centroid and bounding box of changed samples
+   - require:
+       * enough changed samples (motion score)
+       * enough area (min area)
+       * centroid moved downward since previous detection (downward filter)
+*/
+
 function detectMotion(timestamp){
   requestAnimationFrame(detectMotion);
+
   if(!video || video.readyState < 2) return;
   if(timestamp - lastFrame < FPS_INTERVAL) return;
   lastFrame = timestamp;
@@ -289,47 +315,114 @@ function detectMotion(timestamp){
   const w = video.videoWidth, h = video.videoHeight;
   if(!w || !h) return;
 
+  // small canvas for performance (we operate on a crop of interest)
   const canvas = document.createElement('canvas');
-  canvas.width = Math.round(w/2);
-  canvas.height = Math.round(h/2);
+  canvas.width = Math.round(w / 2);
+  canvas.height = Math.round(h / 2);
   const ctx = canvas.getContext('2d');
   ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
 
-  // crop central region where bottle likely appears
-  const cropX = Math.round(canvas.width * 0.25);
-  const cropY = Math.round(canvas.height * 0.2);
-  const cropW = Math.max(1, Math.round(canvas.width * 0.5));
-  const cropH = Math.max(1, Math.round(canvas.height * 0.5));
+  // crop central-lower area where bottle will appear (tweakable)
+  const cropX = Math.round(canvas.width * 0.18);
+  const cropY = Math.round(canvas.height * 0.25);
+  const cropW = Math.max(1, Math.round(canvas.width * 0.64));
+  const cropH = Math.max(1, Math.round(canvas.height * 0.55));
 
   let frame;
   try {
     frame = ctx.getImageData(cropX, cropY, cropW, cropH);
-  } catch(e){
-    // security or not ready
+  } catch(e) {
     return;
   }
 
-  if(!prevFrame){ prevFrame = frame; resetIfNoMotion(); return; }
+  // build current luma array
+  const data = frame.data;
+  const width = cropW;
+  const height = cropH;
+  const currGray = new Float32Array((data.length/4)); // luma per pixel
 
-  const prev = prevFrame.data;
-  const curr = frame.data;
+  let pi = 0;
+  for(let i = 0; i < data.length; i += 4){
+    const r = data[i], g = data[i+1], b = data[i+2];
+    // luma (Y) formula
+    currGray[pi++] = 0.299*r + 0.587*g + 0.114*b;
+  }
+
+  // if first frame, initialize and return
+  if(!prevGray){
+    prevGray = currGray;
+    prevCentroid = null;
+    resetIfNoMotion();
+    return;
+  }
+
+  // analyze differences by sampling
   let motionScore = 0;
-  for(let i=0;i<curr.length;i+=12){ // sample every 4th pixel (3 channels)
-    const diff = Math.abs(curr[i]-prev[i]) + Math.abs(curr[i+1]-prev[i+1]) + Math.abs(curr[i+2]-prev[i+2]);
-    if(diff > MOTION_THRESHOLD_PIXEL_DIFF) motionScore++;
+  let sumX = 0, sumY = 0, countSamples = 0;
+  let minX = width, minY = height, maxX = 0, maxY = 0;
+
+  // sample step (skip pixels to reduce CPU) - must match SAMPLE_STEP declared above
+  const step = SAMPLE_STEP;
+
+  let idx = 0;
+  for(let y = 0; y < height; y += step){
+    for(let x = 0; x < width; x += step){
+      const p = y * width + x;
+      const diff = Math.abs(currGray[p] - prevGray[p]);
+      if(diff > Y_DIFF_THRESHOLD){
+        motionScore++;
+        sumX += x;
+        sumY += y;
+        countSamples++;
+        if(x < minX) minX = x;
+        if(y < minY) minY = y;
+        if(x > maxX) maxX = x;
+        if(y > maxY) maxY = y;
+      }
+      idx++;
+    }
   }
 
-  // update cooldown indicator
-  const since = Date.now() - lastCountTime;
-  cdText.textContent = (since < COOLDOWN_MS) ? ('Cooldown ' + Math.ceil((COOLDOWN_MS - since)/100)/10 + 's') : 'Ready';
+  // compute centroid and area (in sample-space)
+  let centroid = null;
+  if(countSamples > 0){
+    centroid = { x: sumX / countSamples, y: sumY / countSamples };
+  }
 
-  if(motionScore > MOTION_THRESHOLD_SCORE){
+  // area estimate is sample-count scaled roughly to pixel area:
+  // (approx_area_pixels = countSamples * (step*step))
+  const approxAreaPixels = countSamples * (step * step);
+
+  // determine downward motion: compare with prevCentroid (if exists)
+  let downward = true; // default allow if no history
+  if(prevCentroid && centroid){
+    const dy = centroid.y - prevCentroid.y;
+    downward = (dy > DOWNWARD_PIXELS_THRESHOLD);
+  }
+
+  // debug info
+  cdText.textContent = (Date.now() - lastCountTime < COOLDOWN_MS) ? ('Cooldown') : 'Ready';
+  detectionInfo.textContent = `Score:${motionScore} Area:${approxAreaPixels} Centroid:${centroid?Math.round(centroid.y):'-'}`;
+
+  // Decision: require motionScore, area, and downward direction
+  if(motionScore >= MOTION_SCORE_THRESHOLD && approxAreaPixels >= MIN_AREA_PIXELS && downward){
+    // handle detection (cooldown check inside)
     handleBottleDetected();
-    // subtle beep
     playBeep();
+    // small smoothing: set prevCentroid to current to avoid multiple counts on same fall
+    prevCentroid = centroid ? { x: centroid.x, y: centroid.y } : prevCentroid;
+  } else {
+    // decay centroid smoothly so we still can measure direction next time
+    if(prevCentroid && centroid){
+      prevCentroid.x = (1 - SMOOTH_CENTROID_ALPHA) * prevCentroid.x + SMOOTH_CENTROID_ALPHA * centroid.x;
+      prevCentroid.y = (1 - SMOOTH_CENTROID_ALPHA) * prevCentroid.y + SMOOTH_CENTROID_ALPHA * centroid.y;
+    } else if(centroid && !prevCentroid){
+      prevCentroid = { x: centroid.x, y: centroid.y };
+    }
   }
 
-  prevFrame = frame;
+  // update previous gray to current (use simple replacement)
+  prevGray = currGray;
 }
 
 /* ---------------- Camera control ---------------- */
@@ -487,7 +580,6 @@ submitBtn.addEventListener('click', async ()=>{
   const pointsPer = Math.max(1, Number(el('pointsPer').value) || 5);
   const photoData = previewImg.src || lastCaptureDataUrl || '';
   const c = await createCoupon({name, trashType, qty, pointsPer, photoData});
-  // reset form lightly
   el('quantity').value = 1;
   previewImg.style.display = 'none';
   alert('Coupon created: ' + c.id);
@@ -501,7 +593,6 @@ copyLast.addEventListener('click', ()=>{
 });
 downloadQRCode.addEventListener('click', ()=>{
   if(!lastGeneratedCoupon) return alert('No coupon yet');
-  // simple approach: draw QR canvas to link
   const q = qrcodeContainer.querySelector('img') || qrcodeContainer.querySelector('canvas');
   if(!q) return alert('No QR available to download');
   if(q.tagName === 'IMG'){
@@ -554,7 +645,6 @@ async function handleRedeemMode(){
   const redeem = getQueryParam('redeem');
   const code = getQueryParam('code');
   if(!redeem) return;
-  // hide the main UI and show redeem-only view
   document.body.innerHTML = '';
   const html = `
     <div style="min-height:100vh;display:flex;align-items:center;justify-content:center;padding:18px;background:var(--bg)">
@@ -588,12 +678,9 @@ async function handleRedeemMode(){
 
 /* ---------------- Init ---------------- */
 (async function init(){
-  // if redeem mode in URL, handle it and stop
   if(getQueryParam('redeem')){ handleRedeemMode(); return; }
-
   renderHistory();
   await startCamera();
-  // keep an update loop to show cooldown nicely
   (function cdLoop(){
     try{
       const since = Date.now() - lastCountTime;
@@ -605,4 +692,3 @@ async function handleRedeemMode(){
 </script>
 </body>
 </html>
-
